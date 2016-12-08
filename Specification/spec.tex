@@ -1,0 +1,130 @@
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc} 
+\usepackage[T1]{fontenc}      
+\usepackage[francais]{babel} 
+
+
+% maths packages
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{asymptote}
+
+
+\usepackage[bottom=2cm,left=2cm,right=2cm,top=2cm]{geometry}
+
+\title{Spécification langage-machine}
+
+\author{Thibaut PÉRAMI, Théophile WALLEZ, Luc CHABASSIER}
+
+
+\begin{document}
+
+\maketitle
+
+L'architecture choisi est 16 bit tout les calculs d'entier se font sur 16 bits,
+les adresses sont sur 16 bits on ne peut donc controller que $2^{16}$ octets de
+RAM et de ROM. Notamment le programme d'entrée ne peu excéder $2^{16}$ octets.
+
+\section{Registres et drapeaux}
+
+\paragraph{Registres :}
+\begin{itemize}
+\item Registre 0 : \verb!ret!. Ce registre sert à stocker la valeur de retour
+  d'un appel de fonction. Il est \textit{caller-saved}.
+\item Registres 1 et 2: \verb!Hi! et \verb!Lo!. Ces registres servent pour les
+  instruction de multiplication et de division. Il sont \textit{caller-saved}.
+\item Registres 3 à 6 : \verb!a0! à \verb!a3!. Ces registres sont utilisé pour
+  le passage des arguments. Il sont \textit{caller-saved}.
+\item Registre 7 : \verb!sp!. Ce registre contient le pointeur de pile. Il est
+  \textit{callee-saved}
+\item Registre 8 : \verb!fp!. Ce registre contient le pointeur de frame. Il est
+  \textit{callee-saved}
+  \item Registre 9 à 15 : \verb!r0! à \verb!r6!. Ces registres sont génériques.
+    \verb!r0! à \verb!r2! sont \textit{callee-saved} et \verb!r3! à \verb!r6! sont \textit{caller-saved}
+\end{itemize}
+
+\paragraph{Flags :}
+\begin{itemize}
+\item Flag \verb!Z! : Est vrai si le résultat du dernier calcul est nul
+\item Flag \verb!C! : Est vrai si le résultat du dernier calcul a déclanché une
+  retenue (n'a pas de sens sur des entier signés)
+\item Flag \verb!P! : Est vrai si le résultat est positif i.e si le bit 15
+  est nul.
+\item Flag \verb!O! : Est vrai si le dernier calcul a déclenché un overflow (n'a
+  pas de sens sur des addition/soustraction non signés)
+\item Flag \verb!S! : Est vrai si le résultat du dernier calcul vaut 60.
+\end{itemize}
+
+\section{Représentation Binaire}
+
+\paragraph{Intructions $O$ :} Ce sont des instruction de type opération. Elle
+ont pour forme : 
+\begin{center}
+  \begin{asy}
+    unitsize(0.25cm);
+    void square(string lab,int start,int width,bool end = false)
+    {
+      draw((start,0)--(start +width,0)--(start + width,2)--(start,2)--cycle);
+      label(lab,(start +width/2,0 ),N,basealign);
+      label ("$_{" +(string)start+ "}$",(start,0),S);
+      if(end) label ("$_{" +(string)(start + width)+ "}$",(start + width,0),S);
+    }
+    square("op",0,4); 
+    square("dest",4,4);
+    square("src",8,4);
+    square("func",12,4,true);
+  \end{asy}
+\end{center}
+
+Le champs ``op'' spécifie le type d'opération et le champ ``func'' spécifie
+l'opération exacte.
+
+\paragraph{Instruction $I$ :} Ce sont des instruction de chargement de valeur
+immédiate 8bits.
+
+\begin{center}
+  \begin{asy}
+    unitsize(0.25cm);
+    void square(string lab,int start,int width,bool end = false)
+    {
+      draw((start,0)--(start +width,0)--(start + width,2)--(start,2)--cycle);
+      label(lab,(start +width/2,0 ),N,basealign);
+      label ("$_{" +(string)start+ "}$",(start,0),S);
+      if(end) label ("$_{" +(string)(start + width)+ "}$",(start + width,0),S);
+    }
+    square("op",0,4); 
+    square("dest",4,4);
+    square("imm",8,8,true);
+  \end{asy}
+\end{center}
+
+On charge la valeur ``Imm'' dans ``dest'' de la façon spécifié dans ``op''.
+
+\paragraph{Instruction $J$ :} Ce sont des instructions de saut.
+
+\begin{center}
+  \begin{asy}
+    unitsize(0.25cm);
+    void square(string lab,int start,int width,bool end = false)
+    {
+      draw((start,0)--(start +width,0)--(start + width,2)--(start,2)--cycle);
+      label(lab,(start +width/2,0 ),N,basealign);
+      label ("$_{" +(string)start+ "}$",(start,0),S);
+      if(end) label ("$_{" +(string)(start + width)+ "}$",(start + width,0),S);
+    }
+    square("op",0,4); 
+    square("dest",4,4);
+    square("src",8,4);
+    square("func",12,4);
+    square("addr",16,16,true);
+  \end{asy}
+\end{center}
+
+On fait le test spécifié par ``op'' et ``func'' (qui peut être simplement vrai)
+sur ``dest'' et ``src'' et on saute à ``addr'' si vrai.
+
+\section{Opcodes}
+
+\end{document}
