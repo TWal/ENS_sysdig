@@ -131,7 +131,7 @@ Les codes sont représentés sur 4 bits. Les instructions courtes commencent par
 \item Code 8 : Saut long sur drapeaux : Contient un code fonction de type \verb!flag!
   et saute sur l'instruction pointée par \verb!val! si le code de drapeaux
   correspond à \verb!true!.
-\item Code 9 : Saut simple sur test : Contient un code fonction de type
+\item Code 9 : Saut long sur test : Contient un code fonction de type
   \verb!test!, effectue ce test sur \verb!src! et \verb!dest! et saute
   sur l'instruction pointée par \verb!val! si vrai.
 \item Code 10 : Saut inconditionel (\verb!jmp!) : Saute à l'adresse pointé par \verb!val!
@@ -204,7 +204,7 @@ concaténation de \verb!a! et \verb!b! (\verb!a! désigne les bits de poids fort
 \item Code 10 : \verb!asri! Fait un shift arithmétique droite avec la valeur immédiate
   sur 4 bits stocké dans \verb!src!.
 \item Code 14 : \verb!div10! Racourci de \verb!divu! avec un registre de valeur 10.
-\item Code 14 : \verb!div10i! Racourci de \verb!divi! avec un registre de valeur 10.
+\item Code 15 : \verb!div10i! Racourci de \verb!divi! avec un registre de valeur 10.
 \end{itemize}
 
 \paragraph{Instruction Mémoires :} Codes de type \verb!mem!.
