@@ -23,9 +23,9 @@
 
 \maketitle
 
-L'architecture choisi est 16 bit tout les calculs d'entier se font sur 16 bits,
-les adresses sont sur 16 bits on ne peut donc controller que $2^{16}$ octets de
-RAM et de ROM. Notamment le programme d'entrée ne peu excéder $2^{16}$ octets.
+L'architecture choisie est 16 bit tout les calculs d'entier se font sur 16 bits,
+les adresses sont sur 16 bits on ne peut donc contrôler que $2^{16}$ octets de
+RAM et de ROM. Notamment le programme d'entrée ne peut excéder $2^{16}$ octets.
 
 \section{Registres et drapeaux}
 
@@ -45,7 +45,7 @@ RAM et de ROM. Notamment le programme d'entrée ne peu excéder $2^{16}$ octets.
     \verb!r0! à \verb!r2! sont \textit{callee-saved} et \verb!r3! à \verb!r6! sont \textit{caller-saved}
 \end{itemize}
 
-\paragraph{Flags :}
+\paragraph{Drapeaux :}
 \begin{itemize}
 \item Flag \verb!Z! : Est vrai si le résultat du dernier calcul est nul
 \item Flag \verb!C! : Est vrai si le résultat du dernier calcul a déclanché une
@@ -59,7 +59,9 @@ RAM et de ROM. Notamment le programme d'entrée ne peu excéder $2^{16}$ octets.
 
 \section{Représentation Binaire}
 
-\paragraph{Intructions $O$ :} Ce sont des instruction de type opération. Elle
+Le champs ``op'' spécifie le type d'opération et le champ ``func'' spécifie
+l'opération exacte.
+\paragraph{Intructions $S$ :} Ce sont des instructions courtes. Elles
 ont pour forme : 
 \begin{center}
   \begin{asy}
@@ -78,31 +80,9 @@ ont pour forme :
   \end{asy}
 \end{center}
 
-Le champs ``op'' spécifie le type d'opération et le champ ``func'' spécifie
-l'opération exacte.
 
-\paragraph{Instruction $I$ :} Ce sont des instruction de chargement de valeur
-immédiate 8bits.
-
-\begin{center}
-  \begin{asy}
-    unitsize(0.25cm);
-    void square(string lab,int start,int width,bool end = false)
-    {
-      draw((start,0)--(start +width,0)--(start + width,2)--(start,2)--cycle);
-      label(lab,(start +width/2,0 ),N,basealign);
-      label ("$_{" +(string)start+ "}$",(start,0),S);
-      if(end) label ("$_{" +(string)(start + width)+ "}$",(start + width,0),S);
-    }
-    square("op",0,4); 
-    square("dest",4,4);
-    square("imm",8,8,true);
-  \end{asy}
-\end{center}
-
-On charge la valeur ``Imm'' dans ``dest'' de la façon spécifié dans ``op''.
-
-\paragraph{Instruction $J$ :} Ce sont des instructions de saut.
+\paragraph{Instruction $L$ :} Ce sont des instructions longues qui ont besoin
+d'une valeur sur 16 bits (addresse ou constante).
 
 \begin{center}
   \begin{asy}
@@ -118,13 +98,201 @@ On charge la valeur ``Imm'' dans ``dest'' de la façon spécifié dans ``op''.
     square("dest",4,4);
     square("src",8,4);
     square("func",12,4);
-    square("addr",16,16,true);
+    square("val",16,16,true);
   \end{asy}
 \end{center}
 
-On fait le test spécifié par ``op'' et ``func'' (qui peut être simplement vrai)
-sur ``dest'' et ``src'' et on saute à ``addr'' si vrai.
 
 \section{Opcodes}
+
+Les codes sont représentés sur 4 bits. Les instructions courtes commencent par un
+0 et les longues par un 1.
+
+\paragraph{Intructions courtes :}
+\begin{itemize}
+\item Code 0 : Intructions Binaire : Contient un code fonction de type
+  \verb!bin! qui décrit un opération binaire, cette opération est faite entre
+  \verb!src! et \verb!dest! et le résultat est écrit dans \verb!dest!
+\item Code 1 : Intructions Unaires : Contient un code fonction de type \verb!un!
+  qui décrit une opération unaire faite sur le registre \verb!dest!. le champs \verb!src!
+  peu servir de valeur immédiate sur 4 bits.
+\item Code 2 : Instruction Mémoire : Contient un code fonction de type
+  \verb!mem! qui décrit un opération mémoire.
+\item Code 4 : Saut simple sur drapeaux  : Contient un code fonction de type \verb!flag!
+  et saute l'instruction suivante si le code de drapeau correspond à la valeur
+  \verb!true!.
+\item Code 5 : Saut simple sur test : Contient un code fonction de type
+  \verb!test!, effectue ce test sur \verb!src! et \verb!dest! et saute
+  l'instruction suivante si vrai.
+\end{itemize}
+
+\paragraph{Instructions longues :}
+\begin{itemize}
+\item Code 8 : Saut long sur drapeaux : Contient un code fonction de type \verb!flag!
+  et saute sur l'instruction pointée par \verb!val! si le code de drapeaux
+  correspond à \verb!true!.
+\item Code 9 : Saut simple sur test : Contient un code fonction de type
+  \verb!test!, effectue ce test sur \verb!src! et \verb!dest! et saute
+  sur l'instruction pointée par \verb!val! si vrai.
+\item Code 10 : Saut inconditionel (\verb!jmp!) : Saute à l'adresse pointé par \verb!val!
+\item Code 11 : Appel (\verb!call!) : empile la position courante et saute vers l'adresse
+  \verb!val!
+\item Code 12 : Instruction mémoire à offset : Contient un code fonction de type
+  \verb!mem! mais l'adresse mémoire utilisée (\verb!src! ou \verb!dest! en
+  fonction du code fonction) de voit ajouté le contenu de \verb!val!
+\item Code 13 : Valeur Immédiate (\verb!limm!) : Charge la valeur de \verb!val! dans \verb!dest! 
+\end{itemize}
+
+\section{Codes fonctions}
+
+Sauf mention contraire, une instruction peut potentiellement modifier tout les
+drapeaux.
+
+L'écriture mathématique désigne la valeur : $dest$ désigne la valeur de \verb!dest!.
+
+$a$ et $b$ désigne le \og et \fg{} bit à bit de a et b. $\neg a$ désigne la
+négation bit à bit de $a$.
+
+Pour deux registre \verb!a! et \verb!b!, \verb!a:b! désigne la registre à 32 bit
+concaténation de \verb!a! et \verb!b! (\verb!a! désigne les bits de poids fort).
+
+
+\paragraph{Code binaires :} Codes de type \verb!bin!.
+\begin{itemize}
+\item Code 0 : \verb!mov! : écrit $src$ dans \verb!dest!.
+\item Code 1 : \verb!movs! (mov silencieux) : écrit $src$ dans \verb!dest!
+  sans modifier les drapeaux.
+\item Code 4 : \verb!add! : écrit $src + dest$ dans \verb!dest!.
+\item Code 5 : \verb!addc! : écrit $src + dest + c$ dans \verb!dest! ($c$
+  désigne la valeur du drapeau \verb!C!).
+\item Code 6 : \verb!sub! : écrit $dest - src$ dans \verb!dest!
+\item Code 7 : \verb!subc! : écrit $dest - src -c $ dans \verb!dest!.
+\item Code 8 : \verb!and! : écrit $dest$ et $src$ dans \verb!dest!.
+\item Code 9 : \verb!or! : écrit $dest$ ou $src$ dans \verb!dest!.
+\item Code 10 : \verb!xor! : écrit $dest \oplus src$ dans \verb!dest!.
+\item Code 11 : \verb!nand! : écrit $\neg(dest$ et $src)$ dans \verb!dest!.
+\item Code 12 : \verb!lsr! (shifth logique à droite) : fait le shift logique
+  (insère des 0) à droite de \verb!dest! de \verb!src! bits, écrit dans \verb!dest!.
+\item Code 13 : \verb!lsl! (shifth logique à gauche) : fait le shift logique à
+  gauche de \verb!dest! de \verb!src! bits, écrit dans \verb!dest!.
+\item Code 14 : \verb!asr! (shifth arithmétique à droite) : fait le shift arithmétique à
+  droite (recopie du bit de signe) de \verb!dest! de \verb!src! bits, écrit dans \verb!dest!.
+\end{itemize}
+
+
+\paragraph{Codes Unaires :} Codes de type \verb!un!.i
+\begin{itemize}
+\item Code 0 : \verb!not! : écrit $\neg dest$ dans \verb!dest!.
+\item Code 1 : \verb!decr! : écrit $dest-1$ dans \verb!dest!.
+\item Code 2 : \verb!incr! : écrit $dest +1$ dans \verb!dest!.
+\item Code 3 : \verb!neg! : écrit $ - dest$ dans \verb!dest!.
+\item Code 4 : \verb!mulu! : écrit le résultat de la multiplication non signée de
+  \verb!Lo! et \verb!dest! dans \verb!Hi:Lo! 
+\item Code 5 : \verb!muls! : écrit le résultat de la multiplication signée de
+  \verb!Lo! et \verb!dest! dans \verb!Hi:Lo! 
+\item Code 6 : \verb!divu! : calcule la division non signée de \verb!Hi:Lo! par
+  \verb!dest!, met le quotient dans \verb!Hi! et le reste dans \verb!Lo!. Si
+  \verb!dest! était nul, le drapeau \verb!O! est levé et la valeur de
+  \verb!Hi! et \verb!Lo! n'est pas définie.
+  Les drapeaux \verb!P! et \verb!S! sont mis en fonction du quotient, le
+  drapeau \verb!Z! est mis en fonction du reste.
+\item Code 7 : \verb!divs! La même chose mais avec une division signée.
+\item Code 8 : \verb!lsri! Fait un shift logique droite avec la valeur immédiate
+  sur 4 bits stocké dans \verb!src!.
+\item Code 9 : \verb!lsli! Fait un shift logique gauche avec la valeur immédiate
+  sur 4 bits stocké dans \verb!src!.
+\item Code 10 : \verb!asri! Fait un shift arithmétique droite avec la valeur immédiate
+  sur 4 bits stocké dans \verb!src!.
+\item Code 14 : \verb!div10! Racourci de \verb!divu! avec un registre de valeur 10.
+\item Code 14 : \verb!div10i! Racourci de \verb!divi! avec un registre de valeur 10.
+\end{itemize}
+
+\paragraph{Instruction Mémoires :} Codes de type \verb!mem!.
+\begin{itemize}
+\item Code 0 : \verb!rdw! : lit le mot de 16bits à l'adresse $src$ et l'écrit
+  dans \verb!dest!.
+\item Code 1 : \verb!rdbu! : lit le mot de 8 bits à l'adresse $src$ et l'écrit
+  dans \verb!dest! en complétant les bit de poids fort avec des zéros.
+\item Code 2 : \verb!rdbi! : lit le mot de 8 bits à l'adresse $src$ et l'écrit
+  dans \verb!dest! en recopiant le bit de signe sur les bit de poids fort.
+\item Code 4: \verb!wrw! : écrit le mot de 16 bits $src$ à l'adresse $dest$.
+\item Code 5 : \verb!wrl! : écrit le mot de 8 bits des bits de poids faible de
+  \verb!src! à l'adresse $dest$.
+\item Code 6 : \verb!wrh! : écrit le mot de 8 bits des bits de poids fort de
+  \verb!src! à l'adresse $dest$.
+\item Code 8 : \verb!push! : écrit le mot de 16 bits $dest$ à l'adresse $sp$ et
+  décrémente  \verb!sp! de 2.
+\item Code 9 : \verb!pop! : incrémente \verb!sp! de 2 et lit le mot à l'adresse $sp$
+  et le place dans \verb!dest!.
+\item Code 10 : \verb!ret! : incrémente \verb!sp! de 2 et fait un jump vers l'adresse
+  pointée par $sp$
+\end{itemize}
+
+
+\paragraph{Code de Drapeaux :} Code de type \verb!flag!. Si c'est le nom d'un
+drapeau en minuscule, cela vaut vrai si le drapeau est levé, si c'est précéde
+d'un \verb!n!, alors c'est l'inverse.
+\begin{itemize}
+\item Code 0 : \verb!z!. 
+\item Code 1 : \verb!nz!.
+\item Code 2 : \verb!c!
+\item Code 3 : \verb!nc!
+\item Code 4 : \verb!p!
+\item Code 5 : \verb!np!
+\item Code 6 : \verb!o!
+\item Code 7 : \verb!no!
+\item Code 8 : \verb!s!
+\item Code 9 : \verb!ns!
+\end{itemize}
+
+
+\paragraph{Code de tests :} Code de type \verb!test!. On donne à chaque fois
+l'expression logique calculée.
+\begin{itemize}
+\item Code 0 : \verb!eq! : $dest = src$
+\item Code 1 : \verb!g! : $dest > src$ (non signé)
+\item Code 2 : \verb!ge! : $dest \ge src$ (non signé)
+\item Code 3 : \verb!l! : $dest < src$ (non signé)
+\item Code 4 : \verb!le! : $dest \le src$ (non signé)
+\item Code 5 : \verb!gi! : $dest > src$ (signé)
+\item Code 6 : \verb!gei! : $dest \ge src$ (signé)
+\item Code 7 : \verb!li! : $dest < src$ (signé)
+\item Code 8 : \verb!lei! : $dest \le src$ (signé)
+\item Code 9 : \verb!andz! : $(dest$ et $src) = 0$
+\item Code 10 : \verb!nandz! : $\neg(dest$ et $src) = 0$
+\item Code 11 : \verb!xorz! : $(dest \oplus src) = 0$
+\item Code 12 : \verb!nxorz! : $\neg(dest \oplus src) = 0$
+\item Code 13 : \verb!eq60! : $dest = 60$
+\item Code 14 : \verb!neq60! : $dest \neq 60$
+\end{itemize}
+
+\section{Syntaxe de l'assembleur}
+
+\paragraph{Positionement :} Chaque instruction attend un registe ou une valeur à
+une position determinée, il est donc inutile de préciser qu'on est un registre,
+un label ou un valeur immédiate à l'aide d'un symbole comme \%.
+
+
+\paragraph{Instruction standard :} On note la source à gauche et la destination
+à droite : dans \verb!mov a b!, on a \verb!dest = b! et \verb!src = a!
+
+\paragraph{Labels :} On rajoute \verb!label :! dans le code pour donner le nom \og
+label \fg{}  à l'adresse où l'on est.
+
+\paragraph{Sauts :} Pour créer le nom d'un instruction de saut, on concatène le
+type de saut avec le nom du code de fonction. Les préfixes sont \verb!js! pour
+le saut court et \verb!j! pour les longs. L'instruction \verb!jsz! saute
+l'instruction suivante si le drapeau \verb!Z! est levé.
+
+L'instruction \verb!jeq a b pos! saute au label \verb!pos! si $a = b$.
+
+\paragraph{Mémoire :} La différence entre les instruction mémoire avec ou sans
+offset se fait uniquement par la présence d'un entier derrière : \verb!wrl a b! et
+\verb!wrl a b 0! auront le même comportement (écrire $a$ dans l'adresse $b$).
+
+\paragraph{Valeur Immédiate :} On écrira \verb!limm 42 a! pour charger la valeur
+42 dans \verb!a!.
+
+
 
 \end{document}
