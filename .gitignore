@@ -2,3 +2,5 @@ main
 *.o
 *.hi
 *.net
+Specification/**
+!*.tex
