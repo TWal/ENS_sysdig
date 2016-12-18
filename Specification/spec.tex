@@ -145,7 +145,7 @@ Les codes sont représentés sur 4 bits. Les instructions courtes commencent par
 
 \section{Codes fonctions}
 
-Sauf mention contraire, une instruction peut potentiellement modifier tout les
+Sauf mention contraire, une instruction peut potentiellement modifier tous les
 drapeaux.
 
 L'écriture mathématique désigne la valeur : $dest$ désigne la valeur de \verb!dest!.
@@ -171,11 +171,11 @@ concaténation de \verb!a! et \verb!b! (\verb!a! désigne les bits de poids fort
 \item Code 9 : \verb!or! : écrit $dest$ ou $src$ dans \verb!dest!.
 \item Code 10 : \verb!xor! : écrit $dest \oplus src$ dans \verb!dest!.
 \item Code 11 : \verb!nand! : écrit $\neg(dest$ et $src)$ dans \verb!dest!.
-\item Code 12 : \verb!lsr! (shifth logique à droite) : fait le shift logique
+\item Code 12 : \verb!lsr! (shift logique à droite) : fait le shift logique
   (insère des 0) à droite de \verb!dest! de \verb!src! bits, écrit dans \verb!dest!.
-\item Code 13 : \verb!lsl! (shifth logique à gauche) : fait le shift logique à
+\item Code 13 : \verb!lsl! (shift logique à gauche) : fait le shift logique à
   gauche de \verb!dest! de \verb!src! bits, écrit dans \verb!dest!.
-\item Code 14 : \verb!asr! (shifth arithmétique à droite) : fait le shift arithmétique à
+\item Code 14 : \verb!asr! (shift arithmétique à droite) : fait le shift arithmétique à
   droite (recopie du bit de signe) de \verb!dest! de \verb!src! bits, écrit dans \verb!dest!.
 \end{itemize}
 
