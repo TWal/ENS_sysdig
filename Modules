@@ -1,0 +1,104 @@
+Rmk : A : depOn B (A may write on B input)
+A : depOnR B (A may read B output).
+
+There must not be A depOn B and A' depOn B with A different from A'.
+
+Rmk : the curent haskell description system does not allow to do what we are doing here ? should we modify it ?
+
+Instruction System :
+    SubModules :
+        PP Handler : current position in program in PP(Program Position) register.
+            Buses :
+                En : 1 bit
+                Relative : 1bit : (If this is set then PP += Write else PP = Write)
+                Read : 16 bits : Out
+                Write : 16 bits : In
+
+        Intruction Decoding : depOn Register System (excepet direct access), depOn Mem Sytem,
+                              depOn Test System depOnR Flag System, depOnR Instruction Reader
+            Execute the instruction given by Instruction Reader by using
+            all the different modules
+
+        Intruction reader : depOnR PP Handler
+            Buses :
+                Op : 4 bits : Out
+                Dest : 4 bits : Out 
+                Src : 4 bits : Out
+                Func : 4 bits : Out
+                Val : 16 bits : Out (May not be set)
+
+        Jumper : depOn PP Handler, depOnR Instruction reader
+            Both flags must not be set at the same time.
+            if LJmp is set : Set Val in PP
+            If SJmp is set : move 2 Instructions forward
+            If both are not set : move 1 Instruction forward
+            If both are set : UB.
+            Buses :
+                LJmp : 1 bit : In
+                SJmp : 1 bit : In
+
+        
+    
+
+Register System :
+    Buses :
+        ReadCmd : 4 bits : In
+        WriteCmd : 4 bits : In
+        ReadRReg : 16 bits : Out
+        ReagWReg : 16 bits : Out
+        WriteWReg : 16 bits : In
+        WriteEn : 1 bit ; In
+        + Direct Access on Hi,Lo,Sp (Read + Write +En) 
+
+
+
+Mem System : depOn Register System (direct access on Sp)
+    Buses :
+        FuncCode : 4 bits : In
+        DataIn : 16 bits : In
+        Addr : 16 bits : In
+        DataOut : 16 bits : Out
+
+
+
+Flag System :
+    Buses :
+        En : 1 bit : In
+        Read : 6*1 bit : Out
+        Write : 6*1 bit : In
+
+Flag Code System :
+     Read the flag code and return out =1 if this code corresdpond to true.
+     Buses :
+        Func : 4 bits : In
+        Out : 1 bit : Out
+
+
+
+Test Sytem : depOnR FlagSystem, depOn Register System (direct access on Hi,Lo)
+    Take a Test func code and return an Arithmetic func code.
+    This circuit assume that the corresponding operation has been done by the ALU
+    and then return the Out Value corresponding by reading the flags.
+    Buses :
+        TFunc : 4 bits : In
+        AFunc : 4 bits : Out
+        Out : 1 bit : Out
+
+
+
+ALU : depOn Flag System
+    Buses :
+        Bin : 1 bit : In
+        Func : 4 bits : In
+        Op1 : 16 bits : In
+        Op2 : 16 bits : In
+        Res : 16 bits : Out
+
+    Submodules :
+        SimpleUn : neg + incr + decr + neg
+        Shift
+        Mul/Div (to be decomposed)
+        Mov Overlay : jump over the ALU if the code is mov or movs
+        BinALU : add,addc,sub,subc,and,or,xor,nand
+
+    
