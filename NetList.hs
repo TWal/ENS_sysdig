@@ -9,6 +9,7 @@ import qualified Control.Monad as M
 type Var = (String,Int8,TVar)
 data TVar =
     Einput
+  | Econst Int
   | Earg Var
   | Ereg Var
   | Enot Var
@@ -51,6 +52,8 @@ writeNetlist mvs = do
        dfs (l,s,Einput) (sns,ai,av,ae) = (sns,l:ai,av,ae)
        dfs (l,s,Earg v) (sns,ai,av,ae) = rdfs v
            (sns,ai,av,(l ++ " = " ++ label v):ae)
+       dfs (l,s,Econst i) (sns,ai,av,ae) =
+           (sns,ai,av,(l ++ " = " ++ show i):ae)
        dfs (l,s,Ereg v) (sns,ai,av,ae) = rdfs v
            (sns,ai,av,(l ++ " = REG " ++ label v):ae)
        dfs (l,s,Enot v) (sns,ai,av,ae) = rdfs v
@@ -155,4 +158,7 @@ v !!: (i1,i2) = create (i2 - i1 + 1, Eslice i1 i2 v)
 
 (@:) :: Var -> Int8 -> VarMonad Var
 v @: i = create (1, Eselect i v)
+
+constV :: Int8 -> Int -> VarMonad Var
+constV s i = create (s, Econst i)
 
