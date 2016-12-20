@@ -24,18 +24,46 @@ netlist = [rr,rw]
        (rr,rw,_,_,_) = register_manager rcmd wcmd real_write we
                                         low lowe hiw hiwe spw spwe
 
+netlist' = [out]
+ where (z,c,p,o,s) = flag_system en (wz,wc,wp,wo,ws)
+       en          = ("en", 1, Einput)
+       win         = ("win", 5, Einput)
+       code        = ("code", 4, Einput)
+       wz          = ("wz", 1, Eselect 0 win)
+       wc          = ("wc", 1, Eselect 1 win)
+       wp          = ("wp", 1, Eselect 2 win)
+       wo          = ("wo", 1, Eselect 3 win)
+       ws          = ("ws", 1, Eselect 4 win)
+       out         = flag_code (z,c,p,o,s) code
+
 main :: IO ()
-main = putStrLn $ writeNetlist netlist
+main = putStrLn $ writeNetlist netlist'
+
+-------------------------------------------------------------------------------
+----------------------------- Flag code ---------------------------------------
+-------------------------------------------------------------------------------
+flag_code (z,c,p,o,s) func = runVM (make_gen "flag_code") $ do
+    must_neg <- func @: 0
+    x1  <- func @: 1
+    x2  <- func @: 2
+    x3  <- func @: 3
+
+    t1  <- x1 <: (c,z)
+    t2  <- x1 <: (o,p)
+    t3  <- x2 <: (t2,t1)
+    t4  <- x3 <: (s,t3)
+    t4' <- notv t4
+    must_neg <: (t4',t4)
 
 -------------------------------------------------------------------------------
 ---------------------------- Flag system --------------------------------------
 -------------------------------------------------------------------------------
 flag_system en (z,c,p,o,s) =
-    (make_flag "flag_Z" z en
-    ,make_flag "flag_C" c en
-    ,make_flag "flag_P" p en
-    ,make_flag "flag_O" o en
-    ,make_flag "flag_S" s en)
+    (make_flag "flag_z" z en
+    ,make_flag "flag_c" c en
+    ,make_flag "flag_p" p en
+    ,make_flag "flag_o" o en
+    ,make_flag "flag_s" s en)
 
 make_flag nm w we = rr
  where rt = (nm ++ "_temp", 1, Emux we w rr)
