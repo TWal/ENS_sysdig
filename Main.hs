@@ -8,31 +8,31 @@ import Debug.Trace
 import Control.Monad
 -- On Mux assumes 1 -> first choice
 
-netlist = do
-    rcmd <- input "rcmd" 4
-    wcmd <- input "wcmd" 4
-    wval <- input "wval" 16
-    we   <- input "we"   1
-    low  <- constV 16 0
-    lowe <- constV 1  0
-    hiw  <- constV 16 0
-    hiwe <- constV 1  0
-    spw  <- constV 16 0
-    spwe <- constV 1  0
-    (rr,rw,_,_,_) <- register_manager rcmd wcmd wval we
-                                      low lowe hiw hiwe spw spwe
-    return [rr,rw]
+-- Shows how to do recursive definition
+netlist = [rr,rw]
+ where rcmd = ("rcmd", 4,  Einput)
+       wcmd = ("wcmd", 4,  Einput)
+       wval = ("wval", 16, Einput)
+       we   = ("we",   1,  Einput)
+       low  = ("low",  16, Econst 0)
+       lowe = ("lowe", 1,  Econst 0)
+       hiw  = ("hiw",  16, Econst 0)
+       hiwe = ("hiwe", 1,  Econst 0)
+       spw  = ("spw",  16, Econst 0)
+       spwe = ("spwe", 1,  Econst 0)
+       real_write = ("real_write", 16, Eor wval rw)
+       (rr,rw,_,_,_) = register_manager rcmd wcmd real_write we
+                                        low lowe hiw hiwe spw spwe
 
 main :: IO ()
-main = if isRight er then let (Right s) = er in putStrLn s
-       else let (Left s) = er in fail $ "Error : " ++ s
- where er = writeNetlist netlist
+main = putStrLn $ writeNetlist netlist
 
 -------------------------------------------------------------------------------
 ------------------------------ Registers --------------------------------------
 -------------------------------------------------------------------------------
 
 -- Returns a bit true if n4 (a 4-sized nap) holds the value i
+select_bit :: Int8 -> Var -> VarMonad Var
 select_bit i n4 = do
     b1  <- n4 @: 0
     b2  <- n4 @: 1
@@ -71,13 +71,9 @@ select_bit i n4 = do
 --
 -- For circular dependencies the DSL is not enough, the variable must be
 -- manually created
-make_register w we = do
-    t <- nlabel
-    r <- nlabel
-    return $ make t r
- where make t r = rr
-        where rt = (t,16,Emux we w rr)
-              rr = (r,16,Ereg rt)
+make_register w we name = rr
+ where rt = (name ++ "_temp",16,Emux we w rr)
+       rr = (name,16,Ereg rt)
 
 -- The register manager. Returns readrreg, readwreg, and the direct access
 -- registers.
@@ -87,26 +83,27 @@ make_register w we = do
 -- direct access one is selected.
 register_manager readcmd writecmd writewreg we
                  hiw hiwe low lowe spw spwe
- = do rs <- mapM make_r reg
-      readrreg <- dicho_select readcmd  rs 0 3
-      readwreg <- dicho_select writecmd rs 0 3
-      return (readrreg, readwreg, rs !! 1, rs !! 2, rs !! 7)
- where reg = [( 0, Nothing,  Nothing),   -- ret
-              ( 1, Just hiw, Just hiwe), -- hi
-              ( 2, Just low, Just lowe), -- lo
-              ( 3, Nothing,  Nothing),   -- a0
-              ( 4, Nothing,  Nothing),   -- a1
-              ( 5, Nothing,  Nothing),   -- a2
-              ( 6, Nothing,  Nothing),   -- a3
-              ( 7, Just spw, Just spwe), -- sp
-              ( 8, Nothing,  Nothing),   -- fp
-              ( 9, Nothing,  Nothing),   -- r0
-              (10, Nothing,  Nothing),   -- r1
-              (11, Nothing,  Nothing),   -- r2
-              (12, Nothing,  Nothing),   -- r3
-              (13, Nothing,  Nothing),   -- r4
-              (14, Nothing,  Nothing),   -- r5
-              (15, Nothing,  Nothing)]   -- r6
+ = runVM (make_gen "register_manager") $ do 
+     rs <- mapM make_r reg
+     readrreg <- dicho_select readcmd  rs 0 3
+     readwreg <- dicho_select writecmd rs 0 3
+     return (readrreg, readwreg, rs !! 1, rs !! 2, rs !! 7)
+ where reg = [( 0, Nothing,  Nothing,   "ret"),
+              ( 1, Just hiw, Just hiwe, "hi"),
+              ( 2, Just low, Just lowe, "lo"),
+              ( 3, Nothing,  Nothing,   "a0"),
+              ( 4, Nothing,  Nothing,   "a1"),
+              ( 5, Nothing,  Nothing,   "a2"),
+              ( 6, Nothing,  Nothing,   "a3"),
+              ( 7, Just spw, Just spwe, "sp"),
+              ( 8, Nothing,  Nothing,   "fp"),
+              ( 9, Nothing,  Nothing,   "r0"),
+              (10, Nothing,  Nothing,   "r1"),
+              (11, Nothing,  Nothing,   "r2"),
+              (12, Nothing,  Nothing,   "r3"),
+              (13, Nothing,  Nothing,   "r4"),
+              (14, Nothing,  Nothing,   "r5"),
+              (15, Nothing,  Nothing,   "r6")]
        make_we (i, mwe) = do
            s1 <- select_bit i writecmd
            s2 <- we &: s1
@@ -115,10 +112,10 @@ register_manager readcmd writecmd writewreg we
                Nothing    -> return s2
        make_w (i, Just w,  Just we') = we' <: (w, writewreg)
        make_w (i, Nothing, Nothing)  = return writewreg
-       make_r (i,mw,mwe) = do
+       make_r (i,mw,mwe,nm) = do
            w  <- make_w (i,mw,mwe)
            we <- make_we (i,mwe)
-           make_register w we
+           return $ make_register w we nm
        mshift :: Int -> Int8 -> Int
        mshift x i = shiftL x $ fromIntegral i
        dicho_select :: Var -> [Var] -> Int -> Int8 -> VarMonad Var
