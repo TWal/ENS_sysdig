@@ -25,30 +25,31 @@ data TVar =
   | Eselect Int8 Var
   deriving (Show)
 
-type VarMonad = S.StateT Integer (Either String)
+make_gen :: String -> [String]
+make_gen p = map (\c -> "__" ++ p ++ "_" ++ show c) [1..]
+
+type VarMonad = S.StateT [String] (Either String)
 nlabel :: VarMonad String
 nlabel = do
     c <- S.get
-    S.put (c+1)
-    return $ "_l_" ++ show c
+    S.put $ tail c
+    return $ head c
 
 size :: Var -> Int8
 size (_,s,_) = s
 label :: Var -> String
 label (l,_,_) = l
 
-writeNetlist :: VarMonad [Var] -> Either String String
-writeNetlist mvs = do
-    vs <- evs
-    let outputs = map label vs
-    let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) vs
-    return $ "INPUT "    ++ sepBy ", " id       inputs
-          ++ "\nOUTPUT " ++ sepBy ", " id       outputs
-          ++ "\nVAR "    ++ sepBy ", " show_var vars
-          ++ "\nIN\n"    ++ sepBy "\n" id       eqs
- where evs = S.evalStateT mvs 0
-       rdfs v@(l,s,_) x@(sns,ai,av,ae) = if elem l sns then x
-                                       else dfs v (l:sns,ai,(l,s):av,ae)
+writeNetlist :: [Var] -> String
+writeNetlist vs =
+    let outputs = map label vs in
+    let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) vs in
+       "INPUT "    ++ sepBy ", " id       inputs
+    ++ "\nOUTPUT " ++ sepBy ", " id       outputs
+    ++ "\nVAR "    ++ sepBy ", " show_var vars
+    ++ "\nIN\n"    ++ sepBy "\n" id       eqs
+ where rdfs v@(l,s,_) x@(sns,ai,av,ae) = if elem l sns then x
+                                         else dfs v (l:sns,ai,(l,s):av,ae)
        dfs (l,s,Einput) (sns,ai,av,ae) = (sns,l:ai,av,ae)
        dfs (l,s,Earg v) (sns,ai,av,ae) = rdfs v
            (sns,ai,av,(l ++ " = " ++ label v):ae)
@@ -91,6 +92,11 @@ writeNetlist mvs = do
        sepBy _ _ []        = ""
        show_var (l,s) = if s == 1 then l
                         else l ++ " : " ++ show s
+
+runVM :: [String] -> VarMonad a -> a
+runVM g m = case S.evalStateT m g of
+    Right x -> x
+    Left  e -> error e
 
 singleton :: Var -> VarMonad [Var]
 singleton v = return [v]
