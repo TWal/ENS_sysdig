@@ -8,6 +8,22 @@ import Debug.Trace
 import Control.Monad
 -- On Mux assumes 1 -> first choice
 
+netlist'' = [rd,rdt,sp]
+ where rcmd = ("rcmd", 4, Econst 0)
+       wcmd = ("wcmd", 4, Econst 0)
+       wval = ("wval", 16, Econst 0)
+       we   = ("we",   1,  Econst 0)
+       low  = ("low",  16, Econst 0)
+       lowe = ("lowe", 1,  Econst 0)
+       hiw  = ("hiw",  16, Econst 0)
+       hiwe = ("hiwe", 1,  Econst 0)
+       (_,_,_,_,sp) = register_manager rcmd wcmd wval we
+                                       low lowe hiw hiwe spw spwe
+       (rd,rdt,spwe,spw) = memory_system fun dt addr sp
+       fun  = ("fun", 4, Einput)
+       dt   = ("data", 16, Einput)
+       addr = ("addr", 16, Einput)
+
 -- Shows how to do recursive definition
 netlist = [rr,rw]
  where rcmd = ("rcmd", 4,  Einput)
@@ -37,7 +53,74 @@ netlist' = [out]
        out         = flag_code (z,c,p,o,s) code
 
 main :: IO ()
-main = putStrLn $ writeNetlist netlist'
+main = putStrLn $ writeNetlist netlist''
+
+-------------------------------------------------------------------------------
+--------------------------- Memory system -------------------------------------
+-------------------------------------------------------------------------------
+memory_system fun dt addr sp = runVM (make_gen "memory_system") $ do
+    fun0 <- fun @: 0
+    fun1 <- fun @: 1
+    fun2 <- fun @: 2
+    fun3 <- fun @: 3
+    c0   <- constV 16 0
+    c1   <- constV 16 1
+    c2   <- constV 16 2
+    cf1  <- constV 16 0xffff
+    cmp2 <- constV 16 65534 -- 2 complement
+    is_r <- select2_bit 0 fun3 fun2
+    is_w <- select2_bit 1 fun3 fun2
+    is_c <- select2_bit 2 fun3 fun2
+
+    -- Are we performing a write operation ?
+    reading'  <- select2_bit 1 fun1 fun0
+    reading'' <- is_c &: reading'
+    reading   <- is_r |: reading''
+
+    -- Should we write the lower byte ?
+    wl   <- select2_bit 0 fun1 fun0
+    -- Should we write the upper byte ?
+    wc   <- is_c &: wl
+    wh'  <- notv fun1
+    wh'' <- is_w &: wh'
+    wh   <- wc |: wh''
+
+    -- The used addresses for the two byte read
+    used_addr1     <- is_c <: (sp,addr)
+    (used_addr2,_) <- full_adder 16 used_addr1 c1
+
+    used_dt <- is_c <: (sp,dt)
+    datal' <- used_dt !!: (0,7)
+    datah  <- used_dt !!: (8,15)
+
+    sel'  <- select2_bit 2 fun1 fun0
+    sel   <- fun2 &: sel'
+    datal <- sel <: (datah,datal')
+
+    rdl   <- ram 16 8 used_addr1 wl used_addr1 datal
+    rdh'  <- ram 16 8 used_addr2 wh used_addr2 datah
+
+    rdbu <- select4_bit 1 fun 
+    rdbi <- select4_bit 2 fun
+    rdb  <- rdbu |: rdbi
+
+    seli' <- rdl @: 7
+    seli  <- seli' &: rdbi
+    rdh'' <- seli <: (cf1,c0)
+    rdh   <- rdb <: (rdh'',rdh')
+    read_nap <- rdl -: rdh
+
+    ret  <- select4_bit 10 fun
+    pop  <- select4_bit  9 fun
+    push <- select4_bit  8 fun
+    ince <- pop |: ret
+    esp  <- push |: ince
+
+    (incsp,_) <- full_adder 16 sp c2
+    (decsp,_) <- full_adder 16 sp cmp2
+    wsp       <- ince <: (incsp,decsp)
+
+    return (reading,read_nap,esp,wsp)
 
 -------------------------------------------------------------------------------
 ----------------------------- Flag code ---------------------------------------
@@ -72,35 +155,6 @@ make_flag nm w we = rr
 -------------------------------------------------------------------------------
 ------------------------------ Registers --------------------------------------
 -------------------------------------------------------------------------------
-
--- Returns a bit true if n4 (a 4-sized nap) holds the value i
-select_bit :: Int8 -> Var -> VarMonad Var
-select_bit i n4 = do
-    b1  <- n4 @: 0
-    b2  <- n4 @: 1
-    b3  <- n4 @: 2
-    b4  <- n4 @: 3
-    bn1 <- bind2 x1 x2 b1 b2
-    bn2 <- bind2 x3 x4 b3 b4
-    r   <- bn1 &: bn2
-    return r
- where x1 = i `mod` 2
-       x2 = (i `div` 2) `mod` 2
-       x3 = (i `div` 4) `mod` 2
-       x4 = (i `div` 8) `mod` 2
-       bind2 x1 x2 v1 v2 = case (x1,x2) of
-           (0,0) -> do r1 <- notv v1
-                       r2 <- notv v2
-                       r  <- r1 &: r2
-                       return r
-           (0,1) -> do r1 <- notv v1
-                       r  <- r1 &: v2
-                       return r
-           (1,0) -> do r2 <- notv v2
-                       r  <- v1 &: r2
-                       return r
-           (1,1) -> do r  <- v1 &: v2
-                       return r
 
 -- Creates a register. Takes a w nap and a write-enable bit. Returns a variable
 -- holding the value of the register (before the write)
@@ -147,7 +201,7 @@ register_manager readcmd writecmd writewreg we
               (14, Nothing,  Nothing,   "r5"),
               (15, Nothing,  Nothing,   "r6")]
        make_we (i, mwe) = do
-           s1 <- select_bit i writecmd
+           s1 <- select4_bit i writecmd
            s2 <- we &: s1
            case mwe of
                (Just we') -> we' |: s2
@@ -170,4 +224,63 @@ register_manager readcmd writecmd writewreg we
                n2 <- dicho_select s l (x + 1 `mshift` i) $ i - 1
                sl <- s @: i
                sl <: (n2,n1)
+
+-------------------------------------------------------------------------------
+---------------------------------- Utilities ----------------------------------
+-------------------------------------------------------------------------------
+
+-- Returns a bit true if n4 (a 4-sized nap) holds the value i
+select4_bit :: Int8 -> Var -> VarMonad Var
+select4_bit i n4 = do
+    b1  <- n4 @: 0
+    b2  <- n4 @: 1
+    b3  <- n4 @: 2
+    b4  <- n4 @: 3
+    bn1 <- select2_bit i1 b1 b2
+    bn2 <- select2_bit i2 b3 b4
+    r   <- bn1 &: bn2
+    return r
+ where i1 = i `mod` 4
+       i2 = (i `div` 4) `mod` 4
+
+-- Returns true is (v1,v2) holds the value of i (v1 is the LSB)
+select2_bit :: Int8 -> Var -> Var -> VarMonad Var
+select2_bit i v2 v1 = case (i `mod` 2,(i `div` 2) `mod` 2) of
+    (0,0) -> do r1 <- notv v1
+                r2 <- notv v2
+                r  <- r1 &: r2
+                return r
+    (0,1) -> do r1 <- notv v1
+                r  <- r1 &: v2
+                return r
+    (1,0) -> do r2 <- notv v2
+                r  <- v1 &: r2
+                return r
+    (1,1) -> do r  <- v1 &: v2
+                return r
+
+-- Simple adder between three bits
+simple_adder :: Var -> Var -> Var -> VarMonad (Var, Var)
+simple_adder c x y = do
+    r' <- c ^: x
+    r  <- r' ^: y
+    c'   <- x &: y
+    c''  <- x |: y
+    c''' <- c &: c''
+    rc   <- c' |: c'''
+    return (r,rc)
+
+full_adder :: Int8 -> Var -> Var -> VarMonad (Var,Var)
+full_adder 0 x y = do
+    x' <- x @: 0
+    y' <- y @: 0
+    c  <- constV 1 0
+    simple_adder c x' y'
+full_adder n x y = do
+    x' <- x @: n
+    y' <- y @: n
+    (r',c') <- full_adder (n-1) x y
+    (r,c)   <- simple_adder c' x' y'
+    res <- r -: r'
+    return (res,c)
 
