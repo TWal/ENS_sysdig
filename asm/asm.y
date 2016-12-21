@@ -1,156 +1,274 @@
+%code requires{
+#include <string>
+#include <vector>
+#include <map>
+class Scanner;
+#include "Instr.h"
+}
 
 %{
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include "y.tab.h"
-int yylex(void);
-void yyerror(const char*);
-#define YYERROR_VERBOSE
+#include <iostream>
+#include "asm.hpp"
+#include "Scanner.h"
+#include <string>
+#include <vector>
+#include <map>
 
-struct label_list {
-    struct label_list* next;
-    char* label;
-    int address;
-};
+using namespace std;
 
-// O(1)
-void add_to_list(struct label_list** l, char* label, int address) {
-    printf("Adding %s\n", label);
-    struct label_list* n = malloc(sizeof(struct label_list));
-    n->next    = *l;
-    n->label   = label;
-    n->address = address;
-    *l = n;
+void error (const yy::location& loc,const std::string& st){
+    //cout << "hey" << endl;
+    if(loc.begin.line != loc.end.line)
+        cerr <<"File \"" << *loc.begin.filename << "\" , line "
+             << loc.begin.line << "-" << loc.end.line << " : " << st<< endl;
+     else
+         cerr <<"File \"" << *loc.begin.filename << "\" , line "
+              << loc.begin.line << ", characters " << loc.begin.column
+              << "-" << loc.end.column <<": " << st<< endl;
+     exit(EXIT_FAILURE);
 }
 
-// O(len(l))
-int lookup_address(struct label_list* l, char* label) {
-    if(l == NULL)                         yyerror("Undefined label");
-    else { printf("Comparing \"%s\" with \"%s\"\n", l->label, label);
-    if(strcmp(l->label, label) == 0) return l->address;
-    else                                  return lookup_address(l->next, label);
-    }
-}
-
-// Points right after the last read instruction
-static int next = 0;
-// Gives the offset in multiple of 16 bits of the last instruction
-static int address = -1;
-// File descriptor to the out file
-int fd;
-// List of labels
-struct label_list* labels = NULL;
-
-#define MASK4 0x0f
-#define MASK8 0xff
-
-void write_short(int code, int fun, int reg1, int reg2) {
-    char ins[2];
-    ins[0]  = (code & MASK4) << 4;
-    ins[0] |= reg2 & MASK4;
-    ins[1]  = (reg1 & MASK4) << 4;
-    ins[1] |= fun & MASK4;
-    if(write(fd, ins, 2) != 2) yyerror("Write error");
-
-    address = next;
-    ++next;
-}
-
-void write_long(int code, int fun, int reg1, int reg2, int val) {
-    char ins[4];
-    ins[0]  = (code & MASK4) << 4;
-    ins[0] |= reg2 & MASK4;
-    ins[1]  = (reg1 & MASK4) << 4;
-    ins[1] |= fun & MASK4;
-    ins[2] = (val >> 8) & MASK8;
-    ins[3] = val & MASK8;
-    if(write(fd, ins, 4) != 4) yyerror("Write error");
-
-    address = next;
-    next += 2;
+void yy::parser::error(const yy::location& loc,const std::string& st)
+{
+    ::error(loc,st); // calling global error function and not this one.
 }
 
 %}
 
-%union {
-    char* string;
-    int   integer;
+// C++ declaration
+%skeleton "lalr1.cc"
+%language "c++"
+%define api.value.type variant
+
+
+// Token declaration
+%token  <int>           IMMEDIATE
+%token  <int>           REGISTER
+%token  <std::string>   LABEL
+%token                  DOTS
+%token                  NEWLINE
+
+%token  <int>           SINS_BIN
+%token  <int>           SINS_UN
+%token  <int>           SINS_UN_IMM
+%token  <int>           SINS_JFLAG
+%token  <int>           SINS_JTEST
+
+%token                  LINS_JMP
+%token                  LINS_CALL
+%token                  LINS_LIMM
+%token  <int>           LINS_JFLAG
+%token  <int>           LINS_JTEST
+
+%token  <int>           INS_MEM_BIN
+%token  <int>           INS_MEM_UN
+%token  <int>           INS_MEM
+
+%type   <Instruction*> shortInstr
+%type   <Instruction*> longInstr
+%type   <Instruction*> membin
+
+
+
+%parse-param {Scanner& scan}
+%parse-param {std::vector<Instruction*>& res}
+%parse-param {std::map<std::string,ushort>& labels}
+%parse-param {int& size} // must be zero-initialized
+
+%code{
+    // declare the parser fonction to call :
+#define yylex scan.yylex
+ }
+
+// Better error explanation than "syntax error"
+%define parse.error verbose
+
+ //Location tracking for errors
+%locations
+
+ //Location itnitialisation 
+%initial-action
+{
+    @$.initialize (scan.getName());
 };
 
-%token <integer> IMMEDIATE
-%token <integer> REGISTER
-%token <string>  LABEL
-%token           DOTS
-%token           NEWLINE
 
-%token <integer> SINS_BIN
-%token <integer> SINS_UN
-%token <integer> SINS_UN_IMM
-%token <integer> SINS_JFLAG
-%token <integer> SINS_JTEST
 
-%token <integer> LINS_JMP
-%token <integer> LINS_CALL
-%token <integer> LINS_LIMM
-%token <integer> LINS_JFLAG
-%token <integer> LINS_JTEST 
 
-%token <integer> INS_MEM_BIN
-%token <integer> INS_MEM_UN
-%token <integer> INS_MEM
-        
-%%      
-
-program:
-     | LABEL DOTS NEWLINE program
-         { printf("Hey : %s\n", $1); add_to_list(&labels, $1, next); }
-     | SINS_BIN REGISTER REGISTER NEWLINE program
-         { write_short(0, $1, $2, $3); }
-     | SINS_UN  REGISTER          NEWLINE program
-         { write_short(1, $1, 0, $2); }
-     | SINS_UN_IMM IMMEDIATE REGISTER NEWLINE program
-         { write_short(1, $1, $2, $3); }
-     | SINS_JFLAG NEWLINE program
-         { write_short(4, $1, 0, 0); }
-     | SINS_JTEST REGISTER REGISTER NEWLINE program
-         { write_short(5, $1, $2, $3); }
-     | LINS_JMP LABEL NEWLINE program
-         { write_long(10, 0, 0, 0, lookup_address(labels, $2)); }
-     | LINS_CALL LABEL NEWLINE program
-         { write_long(11, 0, 0, 0, lookup_address(labels, $2)); }
-     | LINS_LIMM IMMEDIATE REGISTER NEWLINE program
-         { write_long(13, 0, $3, 0, $2); }
-     | LINS_JFLAG LABEL NEWLINE program
-         { write_long(8, $1, 0, 0, lookup_address(labels, $2)); }
-     | LINS_JTEST REGISTER REGISTER LABEL NEWLINE program
-         { write_long(9, $1, $2, $3, lookup_address(labels, $4)); }
-     | INS_MEM_BIN REGISTER REGISTER IMMEDIATE NEWLINE program
-         { write_long(12, $1, $2, $3, $4); }
-     | INS_MEM_BIN REGISTER REGISTER NEWLINE program
-         { write_short(2, $1, $2, $3); }
-     | INS_MEM_UN REGISTER NEWLINE program
-         { write_short(2, $1, 0, $2); }
-     | INS_MEM NEWLINE program
-         { write_short(2, $1, 0, 0); }
-     |
-     ;
+%start program
 
 %%
 
-void yyerror(const char* s) {
-    fprintf(stderr, "%s\n", s);
-    exit(EXIT_FAILURE);
-}
+// recognize one or more NEWLINE
+newlines:
+    |   newlines NEWLINE
+        ;
 
-int main(void) {
-    fd = open("a.out", O_WRONLY | O_CREAT | O_TRUNC, S_IXUSR | S_IXGRP);
-    yyparse();
-    close(fd);
-    return 0;
-}
+shortInstr:
+        SINS_BIN REGISTER REGISTER
+        {
+            auto tmp = new ShortI;
+            tmp->opcode = 0;
+            tmp->dest = $3;
+            tmp->src = $2;
+            tmp->func = $1;
+            $$ = tmp;
+        }
+    |   SINS_UN REGISTER
+        {
+            auto tmp = new ShortI;
+            tmp->opcode = 1;
+            tmp->dest = $2;
+            tmp->func = $1;
+            $$ = tmp;
+        }
+    |   SINS_UN_IMM IMMEDIATE REGISTER
+        {
+            auto tmp = new ShortI;
+            tmp->opcode = 1;
+            tmp->dest = $3;
+            if($2 <0 or $2 >= 16) {
+                error(@2,
+                "This immediate value is for shifting and must not go beyond 15 or under 0");
+            }
+            tmp->src = $2;
+            tmp->func = $1;
+            $$ = tmp;
+        }
+    |   SINS_JFLAG
+        {
+            auto tmp = new ShortI;
+            tmp->opcode = 4;
+
+            tmp->func = $1;
+            $$ = tmp;
+        }
+    |   SINS_JTEST REGISTER REGISTER
+        {
+            auto tmp = new ShortI;
+            tmp->opcode = 5;
+            tmp->dest = $3;
+            tmp->src = $2;
+            tmp->func = $1;
+            $$ = tmp;
+        }
+    |   INS_MEM_UN REGISTER
+        {
+            auto tmp = new ShortI;
+            tmp->opcode = 2;
+            tmp->dest = $2;
+            tmp->func = $1;
+            $$ = tmp;
+        }
+
+    |   INS_MEM_UN
+        {
+            auto tmp = new ShortI;
+            tmp->opcode = 2;
+            tmp->func = $1;
+            $$ = tmp;
+        }
+
+
+    ;
+
+longInstr:
+        LINS_JMP LABEL
+        {
+            auto tmp = new LongI;
+            tmp->opcode = 10;
+            tmp->label = $2;
+            $$ = tmp;
+        }
+    |   LINS_CALL LABEL
+        {
+            auto tmp = new LongI;
+            tmp->opcode = 11;
+            tmp->label = $2;
+            $$ = tmp;
+        }
+    |   LINS_LIMM IMMEDIATE REGISTER
+        {
+            auto tmp = new LongI;
+            tmp->opcode = 13;
+            tmp->dest = $3;
+            if ($2 <-(1<<15) or $2 >= 1 << 16){
+                error(@2,"This value is outside the range of a 16 bit value (signed or not) ");
+            }
+            tmp->val = $2 & 0x0000FFFF;
+            $$ = tmp;
+        }
+    |   LINS_JFLAG LABEL
+        {
+            auto tmp = new LongI;
+            tmp->opcode = 8;
+            tmp->label = $2;
+            tmp->func = $1;
+            $$ = tmp;
+        }
+    |   LINS_JTEST REGISTER REGISTER LABEL
+        {
+            auto tmp = new LongI;
+            tmp->opcode = 10;
+            tmp->dest = $3;
+            tmp->src = $2;
+            tmp->func = $1;
+            tmp->label = $4;
+            $$ = tmp;
+        }
+    ;
+
+membin:
+        INS_MEM_BIN REGISTER REGISTER
+        {
+            size +=2;
+            auto tmp = new ShortI;
+            tmp->opcode = 2;
+            tmp->dest = $3;
+            tmp->src = $2;
+            tmp->func = $1;
+            $$ = tmp;
+        }
+    |  INS_MEM_BIN REGISTER REGISTER IMMEDIATE
+        {
+            size += 4;
+            auto tmp = new LongI;
+            tmp->opcode = 12;
+            tmp->dest = $3;
+            if ($4 <-(1<<15) or $4 >= 1 << 15){
+                error(@4,"This value is outside the range of a 16 bit signed value");
+            }
+            tmp->val = $4 & 0x0000FFFF;
+            tmp->src = $2;
+            tmp->func = $1;
+            $$ = tmp;
+        }
+    ;
+
+program:
+        newlines
+    |   program LABEL DOTS newlines
+        {
+            //cout << "Parser label :" << $2 << " at : " << size <<endl; 
+            labels[$2] = size;
+        }
+
+    |   program shortInstr newlines
+        {
+            size += 2;
+            res.push_back($2);
+        }
+    |   program longInstr newlines
+        {
+            size +=4;
+            res.push_back($2);
+        }
+    |   program membin newlines
+        {
+            res.push_back($2);
+        }
+        ;
+
+%%
+
 

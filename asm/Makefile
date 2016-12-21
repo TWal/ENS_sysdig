@@ -1,6 +1,21 @@
 
-all:
-	yacc -d asm.y
-	flex asm.l
-	gcc lex.yy.c y.tab.c -o comp
+.PHONY : all messy all clean cleantmp
+all: messyall cleantmp
+	
+	
+messyall:
+	@bison -d asm.y -o asm.cpp
+	@flex asm.l
+	@g++ -O2 lex.yy.cc asm.cpp main.cpp -o asm
+	
+cleantmp:
+	@rm -f asm.cpp
+	@rm -f asm.hpp
+	@rm -f lex.yy.cc
+	@rm -f location.hh
+	@rm -f position.hh
+	@rm -f stack.hh
+	
+clean: cleantmp
+	@rm -f asm
 

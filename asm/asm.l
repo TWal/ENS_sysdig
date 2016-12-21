@@ -1,8 +1,24 @@
 
+
 %{
-#include <stdlib.h>
-void yyerror(const char*);
-#include "y.tab.h"
+#include<iostream>
+#include"asm.hpp"
+#include"Scanner.h"
+
+using namespace std;
+using namespace yy;
+typedef yy::parser::token token;
+
+
+
+#define yyerror error
+
+
+// This code is executed at each action : update position in code.
+#define YY_USER_ACTION loc->step(); loc->columns(yyleng);
+
+
+
 
 int code_flag(char c) {
     switch(c) {
@@ -12,9 +28,10 @@ int code_flag(char c) {
         case 'o' : return 6;
         case 's' : return 8;
     }
+    cerr << "Impossible to get here in code_flag"<<endl; exit(1);
 }
 
-int code_test(char* tst) {
+/*int code_test(char* tst) {
     if(strcmp(tst, "eq"))         return 0;
     else if(strcmp(tst, "g"))     return 1;
     else if(strcmp(tst, "ge"))    return 2;
@@ -30,10 +47,17 @@ int code_test(char* tst) {
     else if(strcmp(tst, "nxorz")) return 12;
     else if(strcmp(tst, "eq60"))  return 13;
     else if(strcmp(tst, "neq60")) return 14;
-    yyerror("Invalid test code");
-}
+    //yyerror("Invalid test code");
+}*/
+
 
 %}
+
+%option c++
+%option yyclass="Scanner"
+%option yylineno
+%option noyywrap
+
 
 digit  [0-9]
 letter [a-zA-Z]
@@ -42,115 +66,113 @@ label  {letter}({letter}|{digit}|_)*
 %%
 
 [ \t]      ; /* Skip whitespace */
-:          return DOTS;
-{digit}+   { yylval.integer = atoi(yytext); return IMMEDIATE; }
-\n+        return NEWLINE;
-           
-rt         { yylval.integer =  0; return REGISTER; }
-hi         { yylval.integer =  1; return REGISTER; }
-lo         { yylval.integer =  2; return REGISTER; }
-a0         { yylval.integer =  3; return REGISTER; }
-a1         { yylval.integer =  4; return REGISTER; }
-a2         { yylval.integer =  5; return REGISTER; }
-a3         { yylval.integer =  6; return REGISTER; }
-sp         { yylval.integer =  7; return REGISTER; }
-fp         { yylval.integer =  8; return REGISTER; }
-r0         { yylval.integer =  9; return REGISTER; }
-r1         { yylval.integer = 10; return REGISTER; }
-r2         { yylval.integer = 11; return REGISTER; }
-r3         { yylval.integer = 12; return REGISTER; }
-r4         { yylval.integer = 13; return REGISTER; }
-r5         { yylval.integer = 14; return REGISTER; }
-r6         { yylval.integer = 15; return REGISTER; }
-           
-mov        { yylval.integer =  0; return SINS_BIN; }
-movs       { yylval.integer =  1; return SINS_BIN; }
-add        { yylval.integer =  4; return SINS_BIN; }
-addc       { yylval.integer =  5; return SINS_BIN; }
-sub        { yylval.integer =  6; return SINS_BIN; }
-subc       { yylval.integer =  7; return SINS_BIN; }
-and        { yylval.integer =  8; return SINS_BIN; }
-or         { yylval.integer =  9; return SINS_BIN; }
-xor        { yylval.integer = 10; return SINS_BIN; }
-nand       { yylval.integer = 11; return SINS_BIN; }
-lsr        { yylval.integer = 12; return SINS_BIN; }
-lsl        { yylval.integer = 13; return SINS_BIN; }
-asr        { yylval.integer = 14; return SINS_BIN; }
-           
-not        { yylval.integer =  0; return SINS_UN; }
-decr       { yylval.integer =  1; return SINS_UN; }
-incr       { yylval.integer =  2; return SINS_UN; }
-neg        { yylval.integer =  3; return SINS_UN; }
-mulu       { yylval.integer =  4; return SINS_UN; }
-muls       { yylval.integer =  5; return SINS_UN; }
-divu       { yylval.integer =  6; return SINS_UN; }
-divs       { yylval.integer =  7; return SINS_UN; }
-lsri       { yylval.integer =  8; return SINS_UN_IMM; }
-lsli       { yylval.integer =  9; return SINS_UN_IMM; }
-asri       { yylval.integer = 10; return SINS_UN_IMM; }
-div10      { yylval.integer = 14; return SINS_UN; }
-div10i     { yylval.integer = 15; return SINS_UN; }
+:          return token::DOTS;
+{digit}+   { yyval->build( atoi(yytext)); return token::IMMEDIATE; }
+\n         {loc->lines() ;return token::NEWLINE;}
 
-js[zcpos]  { yylval.integer = code_flag(yytext[2]);
-             return SINS_JFLAG;
-           }
-jsn[zcpos] { yylval.integer = 1 + code_flag(yytext[2]);
-             return SINS_JFLAG;
-           }
-jseq       { yylval.integer =  0; return SINS_JTEST; }
-jsg        { yylval.integer =  1; return SINS_JTEST; }
-jsl        { yylval.integer =  2; return SINS_JTEST; }
-jsle       { yylval.integer =  3; return SINS_JTEST; }
-jsgi       { yylval.integer =  4; return SINS_JTEST; }
-jsgei      { yylval.integer =  5; return SINS_JTEST; }
-jsli       { yylval.integer =  6; return SINS_JTEST; }
-jslei      { yylval.integer =  7; return SINS_JTEST; }
-jsandz     { yylval.integer =  8; return SINS_JTEST; }
-jsnandz    { yylval.integer =  9; return SINS_JTEST; }
-jsxorz     { yylval.integer = 10; return SINS_JTEST; }
-jsnxorz    { yylval.integer = 11; return SINS_JTEST; }
-jseq60     { yylval.integer = 12; return SINS_JTEST; }
-jsneq60    { yylval.integer = 13; return SINS_JTEST; }
-jeq        { yylval.integer =  0; return LINS_JTEST; }
-jg         { yylval.integer =  1; return LINS_JTEST; }
-jl         { yylval.integer =  2; return LINS_JTEST; }
-jle        { yylval.integer =  3; return LINS_JTEST; }
-jgi        { yylval.integer =  4; return LINS_JTEST; }
-jgei       { yylval.integer =  5; return LINS_JTEST; }
-jli        { yylval.integer =  6; return LINS_JTEST; }
-jlei       { yylval.integer =  7; return LINS_JTEST; }
-jandz      { yylval.integer =  8; return LINS_JTEST; }
-jnandz     { yylval.integer =  9; return LINS_JTEST; }
-jxorz      { yylval.integer = 10; return LINS_JTEST; }
-jnxorz     { yylval.integer = 11; return LINS_JTEST; }
-jeq60      { yylval.integer = 12; return LINS_JTEST; }
-jneq60     { yylval.integer = 13; return LINS_JTEST; }
+rt         { yyval->build(  0); return token::REGISTER; }
+hi         { yyval->build(  1); return token::REGISTER; }
+lo         { yyval->build(  2); return token::REGISTER; }
+a0         { yyval->build(  3); return token::REGISTER; }
+a1         { yyval->build(  4); return token::REGISTER; }
+a2         { yyval->build(  5); return token::REGISTER; }
+a3         { yyval->build(  6); return token::REGISTER; }
+sp         { yyval->build(  7); return token::REGISTER; }
+fp         { yyval->build(  8); return token::REGISTER; }
+r0         { yyval->build(  9); return token::REGISTER; }
+r1         { yyval->build( 10); return token::REGISTER; }
+r2         { yyval->build( 11); return token::REGISTER; }
+r3         { yyval->build( 12); return token::REGISTER; }
+r4         { yyval->build( 13); return token::REGISTER; }
+r5         { yyval->build( 14); return token::REGISTER; }
+r6         { yyval->build( 15); return token::REGISTER; }
 
-jmp        return LINS_JMP;
-call       return LINS_CALL;
-limm       return LINS_LIMM;
-j[zcpos]   { yylval.integer = code_flag(yytext[2]);
-             return LINS_JFLAG;
+mov        { yyval->build(  0); return token::SINS_BIN; }
+movs       { yyval->build(  1); return token::SINS_BIN; }
+add        { yyval->build(  4); return token::SINS_BIN; }
+addc       { yyval->build(  5); return token::SINS_BIN; }
+sub        { yyval->build(  6); return token::SINS_BIN; }
+subc       { yyval->build(  7); return token::SINS_BIN; }
+and        { yyval->build(  8); return token::SINS_BIN; }
+or         { yyval->build(  9); return token::SINS_BIN; }
+xor        { yyval->build( 10); return token::SINS_BIN; }
+nand       { yyval->build( 11); return token::SINS_BIN; }
+lsr        { yyval->build( 12); return token::SINS_BIN; }
+lsl        { yyval->build( 13); return token::SINS_BIN; }
+asr        { yyval->build( 14); return token::SINS_BIN; }
+
+not        { yyval->build(  0); return token::SINS_UN; }
+decr       { yyval->build(  1); return token::SINS_UN; }
+incr       { yyval->build(  2); return token::SINS_UN; }
+neg        { yyval->build(  3); return token::SINS_UN; }
+mulu       { yyval->build(  4); return token::SINS_UN; }
+muls       { yyval->build(  5); return token::SINS_UN; }
+divu       { yyval->build(  6); return token::SINS_UN; }
+divs       { yyval->build(  7); return token::SINS_UN; }
+lsri       { yyval->build(  8); return token::SINS_UN_IMM; }
+lsli       { yyval->build(  9); return token::SINS_UN_IMM; }
+asri       { yyval->build( 10); return token::SINS_UN_IMM; }
+div10      { yyval->build( 14); return token::SINS_UN; }
+div10i     { yyval->build( 15); return token::SINS_UN; }
+
+js[zcpos]  { yyval->build( code_flag(yytext[2]));
+             return token::SINS_JFLAG;
            }
-jn[zcpos]  { yylval.integer = 1 + code_flag(yytext[2]);
-             return LINS_JFLAG;
+jsn[zcpos] { yyval->build( 1 + code_flag(yytext[2]));
+             return token::SINS_JFLAG;
+           }
+jseq       { yyval->build(  0); return token::SINS_JTEST; }
+jsg        { yyval->build(  1); return token::SINS_JTEST; }
+jsl        { yyval->build(  2); return token::SINS_JTEST; }
+jsle       { yyval->build(  3); return token::SINS_JTEST; }
+jsgi       { yyval->build(  4); return token::SINS_JTEST; }
+jsgei      { yyval->build(  5); return token::SINS_JTEST; }
+jsli       { yyval->build(  6); return token::SINS_JTEST; }
+jslei      { yyval->build(  7); return token::SINS_JTEST; }
+jsandz     { yyval->build(  8); return token::SINS_JTEST; }
+jsnandz    { yyval->build(  9); return token::SINS_JTEST; }
+jsxorz     { yyval->build( 10); return token::SINS_JTEST; }
+jsnxorz    { yyval->build( 11); return token::SINS_JTEST; }
+jseq60     { yyval->build( 12); return token::SINS_JTEST; }
+jsneq60    { yyval->build( 13); return token::SINS_JTEST; }
+jeq        { yyval->build(  0); return token::LINS_JTEST; }
+jg         { yyval->build(  1); return token::LINS_JTEST; }
+jl         { yyval->build(  2); return token::LINS_JTEST; }
+jle        { yyval->build(  3); return token::LINS_JTEST; }
+jgi        { yyval->build(  4); return token::LINS_JTEST; }
+jgei       { yyval->build(  5); return token::LINS_JTEST; }
+jli        { yyval->build(  6); return token::LINS_JTEST; }
+jlei       { yyval->build(  7); return token::LINS_JTEST; }
+jandz      { yyval->build(  8); return token::LINS_JTEST; }
+jnandz     { yyval->build(  9); return token::LINS_JTEST; }
+jxorz      { yyval->build( 10); return token::LINS_JTEST; }
+jnxorz     { yyval->build( 11); return token::LINS_JTEST; }
+jeq60      { yyval->build( 12); return token::LINS_JTEST; }
+jneq60     { yyval->build( 13); return token::LINS_JTEST; }
+
+jmp        return token::LINS_JMP;
+call       return token::LINS_CALL;
+limm       return token::LINS_LIMM;
+j[zcpos]   { yyval->build( code_flag(yytext[2]));
+             return token::LINS_JFLAG;
+           }
+jn[zcpos]  { yyval->build( 1 + code_flag(yytext[2]));
+             return token::LINS_JFLAG;
            }
 
-rdw        { yylval.integer =  0; return INS_MEM_BIN; }
-rdbu       { yylval.integer =  1; return INS_MEM_BIN; }
-rdbi       { yylval.integer =  2; return INS_MEM_BIN; }
-wrw        { yylval.integer =  4; return INS_MEM_BIN; }
-wrl        { yylval.integer =  5; return INS_MEM_BIN; }
-wrh        { yylval.integer =  6; return INS_MEM_BIN; }
-push       { yylval.integer =  8; return INS_MEM_UN; }
-pop        { yylval.integer =  9; return INS_MEM_UN; }
-ret        { yylval.integer = 10; return INS_MEM; }
+rdw        { yyval->build(  0); return token::INS_MEM_BIN; }
+rdbu       { yyval->build(  1); return token::INS_MEM_BIN; }
+rdbi       { yyval->build(  2); return token::INS_MEM_BIN; }
+wrw        { yyval->build(  4); return token::INS_MEM_BIN; }
+wrl        { yyval->build(  5); return token::INS_MEM_BIN; }
+wrh        { yyval->build(  6); return token::INS_MEM_BIN; }
+push       { yyval->build(  8); return token::INS_MEM_UN; }
+pop        { yyval->build(  9); return token::INS_MEM_UN; }
+ret        { yyval->build( 10); return token::INS_MEM; }
 
-{label}    { yylval.string = malloc(yyleng + 1);
-             memcpy(yylval.string, yytext, yyleng);
-             yylval.string[yyleng] = '\0';
-             printf("Found label %s\n", yylval.string);
-             return LABEL;
+{label}    { yyval->build(std::string(yytext));
+             //cout << "Found label :" << yytext << endl;
+             return token::LABEL;
            }
 
 %%
