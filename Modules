@@ -14,7 +14,7 @@ Instruction System :
                 Read : 16 bits : Out
                 Write : 16 bits : In
 
-        Intruction Decoding : depOn Register System (excepet direct access), depOn Mem Sytem,
+        Intruction Decoding : depOn Register System (except direct access), depOn Mem Sytem,
                               depOn Test System depOnR Flag System, depOnR Instruction Reader
             Execute the instruction given by Instruction Reader by using
             all the different modules
