@@ -44,16 +44,16 @@ netlist = (dps, [rr,rw])
                                       low lowe hiw hiwe spw spwe
 
 netlist' = (dps, [out])
- where (z,c,p,o,s,dps) = flag_system en (wz,wc,wp,wo,ws)
-       en              = ("en", 1, Einput)
-       win             = ("win", 5, Einput)
-       code            = ("code", 4, Einput)
-       wz              = ("wz", 1, Eselect 0 win)
-       wc              = ("wc", 1, Eselect 1 win)
-       wp              = ("wp", 1, Eselect 2 win)
-       wo              = ("wo", 1, Eselect 3 win)
-       ws              = ("ws", 1, Eselect 4 win)
-       out             = flag_code (z,c,p,o,s) code
+ where dps  = flag_system en (wz,wc,wp,wo,ws)
+       en   = ("en", 1, Einput)
+       win  = ("win", 5, Einput)
+       code = ("code", 4, Einput)
+       wz   = ("wz", 1, Eselect 0 win)
+       wc   = ("wc", 1, Eselect 1 win)
+       wp   = ("wp", 1, Eselect 2 win)
+       wo   = ("wo", 1, Eselect 3 win)
+       ws   = ("ws", 1, Eselect 4 win)
+       out  = flag_code code
 
 main :: IO ()
 main = putStrLn $ (\(a,b) -> writeNetlist a b) netlist''
