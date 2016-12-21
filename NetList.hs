@@ -11,7 +11,7 @@ data TVar =
     Einput
   | Econst Int
   | Earg Var
-  | Ereg Var
+  | Ereg String
   | Enot Var
   | Eor Var Var
   | Eand Var Var
@@ -40,10 +40,10 @@ size (_,s,_) = s
 label :: Var -> String
 label (l,_,_) = l
 
-writeNetlist :: [Var] -> String
-writeNetlist vs =
+writeNetlist :: [Var] -> [Var] -> String
+writeNetlist cmps vs =
     let outputs = map label vs in
-    let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) vs in
+    let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) $ cmps ++ vs in
        "INPUT "    ++ sepBy ", " id       inputs
     ++ "\nOUTPUT " ++ sepBy ", " id       outputs
     ++ "\nVAR "    ++ sepBy ", " show_var vars
@@ -55,8 +55,8 @@ writeNetlist vs =
            (sns,ai,av,(l ++ " = " ++ label v):ae)
        dfs (l,s,Econst i) (sns,ai,av,ae) =
            (sns,ai,av,(l ++ " = " ++ show i):ae)
-       dfs (l,s,Ereg v) (sns,ai,av,ae) = rdfs v
-           (sns,ai,av,(l ++ " = REG " ++ label v):ae)
+       dfs (l,s,Ereg lb) (sns,ai,av,ae) =
+           (sns,ai,av,(l ++ " = REG " ++ lb):ae)
        dfs (l,s,Enot v) (sns,ai,av,ae) = rdfs v
            (sns,ai,av,(l ++ " = NOT " ++ label v):ae)
        dfs (l,s,Eor v1 v2) (sns,ai,av,ae) = rdfs v1 $ rdfs v2
@@ -113,7 +113,7 @@ copy :: Var -> VarMonad Var
 copy (_,s,t) = create (s,t)
 
 reg :: Var -> VarMonad Var
-reg v = create (size v, Ereg v)
+reg v = create (size v, Ereg $ label v)
 
 notv :: Var -> VarMonad Var
 notv v = create (size v, Enot v)

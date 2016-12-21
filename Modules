@@ -58,6 +58,7 @@ Mem System : depOn Register System (direct access on Sp)
         DataIn : 16 bits : In
         Addr : 16 bits : In
         DataOut : 16 bits : Out
+        ReadIns : 1 bit : Out <- Tell wether func was a read instruction or not
 
 
 
@@ -89,6 +90,7 @@ Test Sytem : depOnR FlagSystem, depOn Register System (direct access on Hi,Lo)
 ALU : depOn Flag System
     Buses :
         Bin : 1 bit : In
+        Silent : 1 bit : In <- tell it not to update the flags
         Func : 4 bits : In
         Op1 : 16 bits : In
         Op2 : 16 bits : In
