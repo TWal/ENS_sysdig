@@ -8,7 +8,7 @@ import Debug.Trace
 import Control.Monad
 -- On Mux assumes 1 -> first choice
 
-netlist'' = [rd,rdt,sp]
+netlist'' = (dps, [rd,rdt,get_register "sp"])
  where rcmd = ("rcmd", 4, Econst 0)
        wcmd = ("wcmd", 4, Econst 0)
        wval = ("wval", 16, Econst 0)
@@ -17,15 +17,15 @@ netlist'' = [rd,rdt,sp]
        lowe = ("lowe", 1,  Econst 0)
        hiw  = ("hiw",  16, Econst 0)
        hiwe = ("hiwe", 1,  Econst 0)
-       (_,_,_,_,sp) = register_manager rcmd wcmd wval we
-                                       low lowe hiw hiwe spw spwe
-       (rd,rdt,spwe,spw) = memory_system fun dt addr sp
+       (_,_,dps) = register_manager rcmd wcmd wval we
+                                    low lowe hiw hiwe spw spwe
+       (rd,rdt,spwe,spw) = memory_system fun dt addr
        fun  = ("fun", 4, Einput)
        dt   = ("data", 16, Einput)
        addr = ("addr", 16, Einput)
 
 -- Shows how to do recursive definition
-netlist = [rr,rw]
+netlist = (dps, [rr,rw])
  where rcmd = ("rcmd", 4,  Einput)
        wcmd = ("wcmd", 4,  Einput)
        wval = ("wval", 16, Einput)
@@ -37,40 +37,42 @@ netlist = [rr,rw]
        spw  = ("spw",  16, Econst 0)
        spwe = ("spwe", 1,  Econst 0)
        real_write = ("real_write", 16, Eor wval rw)
-       (rr,rw,_,_,_) = register_manager rcmd wcmd real_write we
-                                        low lowe hiw hiwe spw spwe
+       (rr,rw,dps) = register_manager rcmd wcmd real_write we
+                                      low lowe hiw hiwe spw spwe
 
-netlist' = [out]
- where (z,c,p,o,s) = flag_system en (wz,wc,wp,wo,ws)
-       en          = ("en", 1, Einput)
-       win         = ("win", 5, Einput)
-       code        = ("code", 4, Einput)
-       wz          = ("wz", 1, Eselect 0 win)
-       wc          = ("wc", 1, Eselect 1 win)
-       wp          = ("wp", 1, Eselect 2 win)
-       wo          = ("wo", 1, Eselect 3 win)
-       ws          = ("ws", 1, Eselect 4 win)
-       out         = flag_code (z,c,p,o,s) code
+netlist' = (dps, [out])
+ where (z,c,p,o,s,dps) = flag_system en (wz,wc,wp,wo,ws)
+       en              = ("en", 1, Einput)
+       win             = ("win", 5, Einput)
+       code            = ("code", 4, Einput)
+       wz              = ("wz", 1, Eselect 0 win)
+       wc              = ("wc", 1, Eselect 1 win)
+       wp              = ("wp", 1, Eselect 2 win)
+       wo              = ("wo", 1, Eselect 3 win)
+       ws              = ("ws", 1, Eselect 4 win)
+       out             = flag_code (z,c,p,o,s) code
 
 main :: IO ()
-main = putStrLn $ writeNetlist netlist''
+main = putStrLn $ (\(a,b) -> writeNetlist a b) netlist''
 
 -------------------------------------------------------------------------------
 --------------------------- Memory system -------------------------------------
 -------------------------------------------------------------------------------
-memory_system fun dt addr sp = runVM (make_gen "memory_system") $ do
-    fun0 <- fun @: 0
-    fun1 <- fun @: 1
-    fun2 <- fun @: 2
-    fun3 <- fun @: 3
-    c0   <- constV 16 0
-    c1   <- constV 16 1
-    c2   <- constV 16 2
-    cf1  <- constV 16 0xffff
-    cmp2 <- constV 16 65534 -- 2 complement
-    is_r <- select2_bit 0 fun3 fun2
-    is_w <- select2_bit 1 fun3 fun2
-    is_c <- select2_bit 2 fun3 fun2
+memory_system fun dt addr = runVM (make_gen "memory_system") $ do
+    let sp = get_register "sp"
+    fun0  <- fun @: 0
+    fun1  <- fun @: 1
+    fun2  <- fun @: 2
+    fun3  <- fun @: 3
+    c0    <- constV 16 0
+    c1    <- constV 16 1
+    c2    <- constV 16 2
+    cf1_8 <- constV 8 0xff
+    c0_8  <- constV 8 0
+    cmp2  <- constV 16 65534 -- 2 complement
+    is_r  <- select2_bit 0 fun3 fun2
+    is_w  <- select2_bit 1 fun3 fun2
+    is_c  <- select2_bit 2 fun3 fun2
 
     -- Are we performing a write operation ?
     reading'  <- select2_bit 1 fun1 fun0
@@ -106,7 +108,7 @@ memory_system fun dt addr sp = runVM (make_gen "memory_system") $ do
 
     seli' <- rdl @: 7
     seli  <- seli' &: rdbi
-    rdh'' <- seli <: (cf1,c0)
+    rdh'' <- seli <: (cf1_8,c0_8)
     rdh   <- rdb <: (rdh'',rdh')
     read_nap <- rdl -: rdh
 
@@ -141,16 +143,18 @@ flag_code (z,c,p,o,s) func = runVM (make_gen "flag_code") $ do
 -------------------------------------------------------------------------------
 ---------------------------- Flag system --------------------------------------
 -------------------------------------------------------------------------------
-flag_system en (z,c,p,o,s) =
+flag_system en (z,c,p,o,s) = trans
     (make_flag "flag_z" z en
     ,make_flag "flag_c" c en
     ,make_flag "flag_p" p en
     ,make_flag "flag_o" o en
     ,make_flag "flag_s" s en)
+ where trans ((x1,y1), (x2,y2), (x3,y3), (x4,y4), (x5,y5)) =
+             (x1, x2, x3, x4, x5, [y1, y2, y3, y4, y5])
 
-make_flag nm w we = rr
+make_flag nm w we = (rr,rt)
  where rt = (nm ++ "_temp", 1, Emux we w rr)
-       rr = (nm, 1, Ereg rt)
+       rr = (nm, 1, Ereg $ nm ++ "_temp")
 
 -------------------------------------------------------------------------------
 ------------------------------ Registers --------------------------------------
@@ -167,9 +171,9 @@ make_flag nm w we = rr
 --
 -- For circular dependencies the DSL is not enough, the variable must be
 -- manually created
-make_register w we name = rr
+make_register w we name = (rr,rt)
  where rt = (name ++ "_temp",16,Emux we w rr)
-       rr = (name,16,Ereg rt)
+       rr = (name,16,Ereg $ name ++ "_temp")
 
 -- The register manager. Returns readrreg, readwreg, and the direct access
 -- registers.
@@ -181,9 +185,10 @@ register_manager readcmd writecmd writewreg we
                  hiw hiwe low lowe spw spwe
  = runVM (make_gen "register_manager") $ do 
      rs <- mapM make_r reg
-     readrreg <- dicho_select readcmd  rs 0 3
-     readwreg <- dicho_select writecmd rs 0 3
-     return (readrreg, readwreg, rs !! 1, rs !! 2, rs !! 7)
+     let rs' = map fst rs
+     readrreg <- dicho_select readcmd  rs' 0 3
+     readwreg <- dicho_select writecmd rs' 0 3
+     return (readrreg, readwreg, map snd rs)
  where reg = [( 0, Nothing,  Nothing,   "ret"),
               ( 1, Just hiw, Just hiwe, "hi"),
               ( 2, Just low, Just lowe, "lo"),
@@ -224,6 +229,9 @@ register_manager readcmd writecmd writewreg we
                n2 <- dicho_select s l (x + 1 `mshift` i) $ i - 1
                sl <- s @: i
                sl <: (n2,n1)
+
+get_register :: String -> Var
+get_register n = (n,16,Ereg $ n ++ "_temp")
 
 -------------------------------------------------------------------------------
 ---------------------------------- Utilities ----------------------------------
@@ -271,14 +279,14 @@ simple_adder c x y = do
     return (r,rc)
 
 full_adder :: Int8 -> Var -> Var -> VarMonad (Var,Var)
-full_adder 0 x y = do
+full_adder 1 x y = do
     x' <- x @: 0
     y' <- y @: 0
     c  <- constV 1 0
     simple_adder c x' y'
 full_adder n x y = do
-    x' <- x @: n
-    y' <- y @: n
+    x' <- x @: (n - 1)
+    y' <- y @: (n - 1)
     (r',c') <- full_adder (n-1) x y
     (r,c)   <- simple_adder c' x' y'
     res <- r -: r'
