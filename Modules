@@ -82,7 +82,9 @@ Test Sytem : depOnR FlagSystem, depOn Register System (direct access on Hi,Lo)
     and then return the Out Value corresponding by reading the flags.
     Buses :
         TFunc : 4 bits : In
+        Src, Dest : 16 bits : Out <- the value of the arguments
         AFunc : 4 bits : Out
+        P1, P2 : 16 bits : Out <- the inputs naps of the ALU
         Out : 1 bit : Out
 
 
