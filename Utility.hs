@@ -2,6 +2,7 @@
 module Utility where
 import NetList
 import Data.Int
+import Control.Monad
 
 -- Returns a bit true if n4 (a 4-sized nap) holds the value i
 select4_bit :: Int8 -> Var -> VarMonad Var
@@ -57,4 +58,11 @@ full_adder n x y = do
     (r,c)   <- simple_adder c' x' y'
     res <- r -: r'
     return (res,c)
+
+long_bin :: (Var -> Var -> VarMonad Var) -> [Var] -> VarMonad Var
+long_bin b [] = fail "long_bin on empty list"
+long_bin b l  = foldM b (head l) $ tail l
+
+long_or  = long_bin (|:)
+long_and = long_bin (&:)
 
