@@ -3,6 +3,7 @@ module Utility where
 import NetList
 import Data.Int
 import Control.Monad
+import Data.Int
 
 -- Returns a bit true if n4 (a 4-sized nap) holds the value i
 select4_bit :: Int8 -> Var -> VarMonad Var
@@ -66,8 +67,16 @@ long_bin b l  = foldM b (head l) $ tail l
 long_or  = long_bin (|:)
 long_and = long_bin (&:)
 
+nap_bin :: (Var -> Var -> VarMonad Var) -> Var -> VarMonad Var
+nap_bin b n = n @: 0 >>= \d -> foldM (\v -> \i -> n @: i >>= \v2 -> b v v2)
+                                     d [1 .. (s-1)] 
+ where s = size n
+
+nap_or = nap_bin (|:)
+nap_and = nap_bin (&:)
+
 -- long_select2 long_select4
-long_select :: (Int -> Var -> VarMonad Var) -> Var -> [(Int,Var)] -> VarMonad Var
+long_select :: (Int8 -> Var -> VarMonad Var) -> Var -> [(Int8,Var)] -> VarMonad Var
 long_select f v [(_,rv)] = return rv
 long_select f v ((i,rv) : rvs) = do
     b   <- f i v
@@ -78,6 +87,6 @@ long_select2 = long_select sel
  where sel i v = do
         v1 <- v @: 1
         v0 <- v @: 0
-        select2_bit i v1 v2
+        select2_bit i v1 v0
 long_select4 = long_select select4_bit
 
