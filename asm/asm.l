@@ -31,26 +31,6 @@ int code_flag(char c) {
     cerr << "Impossible to get here in code_flag"<<endl; exit(1);
 }
 
-/*int code_test(char* tst) {
-    if(strcmp(tst, "eq"))         return 0;
-    else if(strcmp(tst, "g"))     return 1;
-    else if(strcmp(tst, "ge"))    return 2;
-    else if(strcmp(tst, "l"))     return 3;
-    else if(strcmp(tst, "le"))    return 4;
-    else if(strcmp(tst, "gi"))    return 5;
-    else if(strcmp(tst, "gei"))   return 6;
-    else if(strcmp(tst, "li"))    return 7;
-    else if(strcmp(tst, "lei"))   return 8;
-    else if(strcmp(tst, "andz"))  return 9;
-    else if(strcmp(tst, "nandz")) return 10;
-    else if(strcmp(tst, "xorz"))  return 11;
-    else if(strcmp(tst, "nxorz")) return 12;
-    else if(strcmp(tst, "eq60"))  return 13;
-    else if(strcmp(tst, "neq60")) return 14;
-    //yyerror("Invalid test code");
-}*/
-
-
 %}
 
 %option c++
@@ -89,17 +69,17 @@ r6         { yyval->build( 15); return token::REGISTER; }
 
 mov        { yyval->build(  0); return token::SINS_BIN; }
 movs       { yyval->build(  1); return token::SINS_BIN; }
-add        { yyval->build(  4); return token::SINS_BIN; }
-addc       { yyval->build(  5); return token::SINS_BIN; }
-sub        { yyval->build(  6); return token::SINS_BIN; }
-subc       { yyval->build(  7); return token::SINS_BIN; }
-and        { yyval->build(  8); return token::SINS_BIN; }
-or         { yyval->build(  9); return token::SINS_BIN; }
-xor        { yyval->build( 10); return token::SINS_BIN; }
-nand       { yyval->build( 11); return token::SINS_BIN; }
-lsr        { yyval->build( 12); return token::SINS_BIN; }
-lsl        { yyval->build( 13); return token::SINS_BIN; }
-asr        { yyval->build( 14); return token::SINS_BIN; }
+lsr        { yyval->build(  4); return token::SINS_BIN; }
+lsl        { yyval->build(  5); return token::SINS_BIN; }
+asr        { yyval->build(  6); return token::SINS_BIN; }
+add        { yyval->build(  8); return token::SINS_BIN; }
+addc       { yyval->build(  9); return token::SINS_BIN; }
+sub        { yyval->build( 10); return token::SINS_BIN; }
+subc       { yyval->build( 11); return token::SINS_BIN; }
+and        { yyval->build( 12); return token::SINS_BIN; }
+or         { yyval->build( 13); return token::SINS_BIN; }
+xor        { yyval->build( 14); return token::SINS_BIN; }
+nand       { yyval->build( 15); return token::SINS_BIN; }
 
 not        { yyval->build(  0); return token::SINS_UN; }
 decr       { yyval->build(  1); return token::SINS_UN; }
