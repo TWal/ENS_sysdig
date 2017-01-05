@@ -162,21 +162,22 @@ concaténation de \verb!a! et \verb!b! (\verb!a! désigne les bits de poids fort
 \item Code 0 : \verb!mov! : écrit $src$ dans \verb!dest!.
 \item Code 1 : \verb!movs! (mov silencieux) : écrit $src$ dans \verb!dest!
   sans modifier les drapeaux.
-\item Code 4 : \verb!add! : écrit $src + dest$ dans \verb!dest!.
-\item Code 5 : \verb!addc! : écrit $src + dest + c$ dans \verb!dest! ($c$
-  désigne la valeur du drapeau \verb!C!).
-\item Code 6 : \verb!sub! : écrit $dest - src$ dans \verb!dest!
-\item Code 7 : \verb!subc! : écrit $dest - src -c $ dans \verb!dest!.
-\item Code 8 : \verb!and! : écrit $dest$ et $src$ dans \verb!dest!.
-\item Code 9 : \verb!or! : écrit $dest$ ou $src$ dans \verb!dest!.
-\item Code 10 : \verb!xor! : écrit $dest \oplus src$ dans \verb!dest!.
-\item Code 11 : \verb!nand! : écrit $\neg(dest$ et $src)$ dans \verb!dest!.
-\item Code 12 : \verb!lsr! (shift logique à droite) : fait le shift logique
+\item Code 4 : \verb!lsr! (shift logique à droite) : fait le shift logique
   (insère des 0) à droite de \verb!dest! de \verb!src! bits, écrit dans \verb!dest!.
-\item Code 13 : \verb!lsl! (shift logique à gauche) : fait le shift logique à
+\item Code 5 : \verb!lsl! (shift logique à gauche) : fait le shift logique à
   gauche de \verb!dest! de \verb!src! bits, écrit dans \verb!dest!.
-\item Code 14 : \verb!asr! (shift arithmétique à droite) : fait le shift arithmétique à
+\item Code 6 : \verb!asr! (shift arithmétique à droite) : fait le shift arithmétique à
   droite (recopie du bit de signe) de \verb!dest! de \verb!src! bits, écrit dans \verb!dest!.
+\item Code 8 : \verb!add! : écrit $src + dest$ dans \verb!dest!.
+\item Code 9 : \verb!addc! : écrit $src + dest + c$ dans \verb!dest! ($c$
+  désigne la valeur du drapeau \verb!C!).
+\item Code 10 : \verb!sub! : écrit $dest - src$ dans \verb!dest!
+\item Code 11 : \verb!subc! : écrit $dest - src -c $ dans \verb!dest!.
+\item Code 12 : \verb!and! : écrit $dest$ et $src$ dans \verb!dest!.
+\item Code 13 : \verb!or! : écrit $dest$ ou $src$ dans \verb!dest!.
+\item Code 14 : \verb!xor! : écrit $dest \oplus src$ dans \verb!dest!.
+\item Code 15 : \verb!nand! : écrit $\neg(dest$ et $src)$ dans \verb!dest!.
+
 \end{itemize}
 
 

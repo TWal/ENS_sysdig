@@ -1,7 +1,7 @@
-Rmk : A : depOn B (A may write on B input)
+Rmk : A : depOnW B (A may write on B input)
 A : depOnR B (A may read B output).
 
-There must not be A depOn B and A' depOn B with A different from A'.
+There must not be A depOnW B and A' depOn B with A different from A'.
 
 Rmk : the curent haskell description system does not allow to do what we are doing here ? should we modify it ?
 
@@ -14,8 +14,8 @@ Instruction System :
                 Read : 16 bits : Out
                 Write : 16 bits : In
 
-        Intruction Decoding : depOn Register System (except direct access), depOn Mem Sytem,
-                              depOn Test System depOnR Flag System, depOnR Instruction Reader
+        Intruction Decoding : depOnW Register System (except direct access), depOn Mem Sytem,
+                              depOnW Test System depOnR Flag System, depOnR Instruction Reader
             Execute the instruction given by Instruction Reader by using
             all the different modules
 
@@ -27,7 +27,7 @@ Instruction System :
                 Func : 4 bits : Out
                 Val : 16 bits : Out (May not be set)
 
-        Jumper : depOn PP Handler, depOnR Instruction reader
+        Jumper : depOnW PP Handler, depOnR Instruction reader
             Both flags must not be set at the same time.
             if LJmp is set : Set Val in PP
             If SJmp is set : move 2 Instructions forward
@@ -52,7 +52,7 @@ Register System :
 
 
 
-Mem System : depOn Register System (direct access on Sp)
+Mem System : depOnW Register System (direct access on Sp)
     Buses :
         FuncCode : 4 bits : In
         DataIn : 16 bits : In
@@ -76,7 +76,7 @@ Flag Code System :
 
 
 
-Test Sytem : depOnR FlagSystem, depOn Register System (direct access on Hi,Lo)
+Test Sytem : depOnR FlagSystem, depOnW Register System (direct access on Hi,Lo)
     Take a Test func code and return an Arithmetic func code.
     This circuit assume that the corresponding operation has been done by the ALU
     and then return the Out Value corresponding by reading the flags.
@@ -89,7 +89,7 @@ Test Sytem : depOnR FlagSystem, depOn Register System (direct access on Hi,Lo)
 
 
 
-ALU : depOn Flag System
+ALU : depOnW Flag System
     Buses :
         Bin : 1 bit : In
         Silent : 1 bit : In <- tell it not to update the flags
