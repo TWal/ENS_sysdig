@@ -66,3 +66,18 @@ long_bin b l  = foldM b (head l) $ tail l
 long_or  = long_bin (|:)
 long_and = long_bin (&:)
 
+-- long_select2 long_select4
+long_select :: (Int -> Var -> VarMonad Var) -> Var -> [(Int,Var)] -> VarMonad Var
+long_select f v [(_,rv)] = return rv
+long_select f v ((i,rv) : rvs) = do
+    b   <- f i v
+    nrv <- long_select f v rvs
+    b <: (rv,nrv)
+
+long_select2 = long_select sel
+ where sel i v = do
+        v1 <- v @: 1
+        v0 <- v @: 0
+        select2_bit i v1 v2
+long_select4 = long_select select4_bit
+
