@@ -44,7 +44,7 @@ instruction_system_int test_func test_src test_dest alu_res alu_hiw alu_hiwe alu
     ins_jump            <- select4_bit 10 op -- jump instruction
     ins_call            <- select4_bit 11 op -- call instruction
     ins_mem_offset      <- select4_bit 12 op -- memory instruction with offset
-    ins_limm            <- select4_bit 13 op -- TODO : load immediate instruction
+    ins_limm            <- select4_bit 13 op -- load immediate instruction
 
     -- ALU input
     is_test    <- ins_jump_test_short  |: ins_jump_test_long
@@ -79,13 +79,14 @@ instruction_system_int test_func test_src test_dest alu_res alu_hiw alu_hiwe alu
     (jpp,_)     <- full_adder 16 cad next_pp
     jump_on_ret <- mem_enable &: mem_ret
     jmpdest'    <- jump_on_ret <: (wsp,jpp)
-    jump_on_val <- is_long |: is_call
-    jmpdest     <- jump_on_vall <: (val,jmpdest')
+    jump_on_val <- is_long |: ins_call
+    jmpdest     <- jump_on_val <: (val,jmpdest')
 
     -- Registers operations
     read_cmd  <- return src
     write_cmd <- return dest
-    reg_data  <- is_alu <: (alu_res,mem_nap)
+    reg_data' <- is_alu <: (alu_res,mem_nap)
+    reg_data  <- ins_limm <: (val,reg_data')
     reg_we    <- is_alu |: mem_reading
 
     -- Update pp
@@ -94,7 +95,7 @@ instruction_system_int test_func test_src test_dest alu_res alu_hiw alu_hiwe alu
 
     return (is_bin, real_func, real_src, real_dest, write_hi, enable_hi, write_lo, enable_lo,
             wsp, esp, mem_enable, addr,
-            read_cmd, write_cmd, rgdt, rgwe, undefined) -- TODO
+            read_cmd, write_cmd, reg_data, reg_we, undefined) -- TODO
 
 
 
