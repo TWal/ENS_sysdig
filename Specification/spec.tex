@@ -187,23 +187,24 @@ concaténation de \verb!a! et \verb!b! (\verb!a! désigne les bits de poids fort
 \item Code 1 : \verb!decr! : écrit $dest-1$ dans \verb!dest!.
 \item Code 2 : \verb!incr! : écrit $dest +1$ dans \verb!dest!.
 \item Code 3 : \verb!neg! : écrit $ - dest$ dans \verb!dest!.
-\item Code 4 : \verb!mulu! : écrit le résultat de la multiplication non signée de
+\item Code 4 : \verb!lsri! Fait un shift logique droite avec la valeur immédiate
+  sur 4 bits stocké dans \verb!src!.
+\item Code 5 : \verb!lsli! Fait un shift logique gauche avec la valeur immédiate
+  sur 4 bits stocké dans \verb!src!.
+\item Code 6 : \verb!asri! Fait un shift arithmétique droite avec la valeur immédiate
+  sur 4 bits stocké dans \verb!src!.
+
+\item Code 8 : \verb!mulu! : écrit le résultat de la multiplication non signée de
   \verb!Lo! et \verb!dest! dans \verb!Hi:Lo! 
-\item Code 5 : \verb!muls! : écrit le résultat de la multiplication signée de
+\item Code 9 : \verb!muls! : écrit le résultat de la multiplication signée de
   \verb!Lo! et \verb!dest! dans \verb!Hi:Lo! 
-\item Code 6 : \verb!divu! : calcule la division non signée de \verb!Hi:Lo! par
+\item Code 10 : \verb!divu! : calcule la division non signée de \verb!Hi:Lo! par
   \verb!dest!, met le quotient dans \verb!Hi! et le reste dans \verb!Lo!. Si
   \verb!dest! était nul, le drapeau \verb!O! est levé et la valeur de
   \verb!Hi! et \verb!Lo! n'est pas définie.
   Les drapeaux \verb!P! et \verb!S! sont mis en fonction du quotient, le
   drapeau \verb!Z! est mis en fonction du reste.
-\item Code 7 : \verb!divs! La même chose mais avec une division signée.
-\item Code 8 : \verb!lsri! Fait un shift logique droite avec la valeur immédiate
-  sur 4 bits stocké dans \verb!src!.
-\item Code 9 : \verb!lsli! Fait un shift logique gauche avec la valeur immédiate
-  sur 4 bits stocké dans \verb!src!.
-\item Code 10 : \verb!asri! Fait un shift arithmétique droite avec la valeur immédiate
-  sur 4 bits stocké dans \verb!src!.
+\item Code 11 : \verb!divs! La même chose mais avec une division signée.
 \item Code 14 : \verb!div10! Racourci de \verb!divu! avec un registre de valeur 10.
 \item Code 15 : \verb!div10i! Racourci de \verb!divi! avec un registre de valeur 10.
 \end{itemize}

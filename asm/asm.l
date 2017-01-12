@@ -85,20 +85,20 @@ not        { yyval->build(  0); return token::SINS_UN; }
 decr       { yyval->build(  1); return token::SINS_UN; }
 incr       { yyval->build(  2); return token::SINS_UN; }
 neg        { yyval->build(  3); return token::SINS_UN; }
-mulu       { yyval->build(  4); return token::SINS_UN; }
-muls       { yyval->build(  5); return token::SINS_UN; }
-divu       { yyval->build(  6); return token::SINS_UN; }
-divs       { yyval->build(  7); return token::SINS_UN; }
-lsri       { yyval->build(  8); return token::SINS_UN_IMM; }
-lsli       { yyval->build(  9); return token::SINS_UN_IMM; }
-asri       { yyval->build( 10); return token::SINS_UN_IMM; }
+lsri       { yyval->build(  4); return token::SINS_UN_IMM; }
+lsli       { yyval->build(  5); return token::SINS_UN_IMM; }
+asri       { yyval->build(  6); return token::SINS_UN_IMM; }
+mulu       { yyval->build(  8); return token::SINS_UN; }
+muls       { yyval->build(  9); return token::SINS_UN; }
+divu       { yyval->build( 10); return token::SINS_UN; }
+divs       { yyval->build( 11); return token::SINS_UN; }
 div10      { yyval->build( 14); return token::SINS_UN; }
 div10i     { yyval->build( 15); return token::SINS_UN; }
 
 js[zcpos]  { yyval->build( code_flag(yytext[2]));
              return token::SINS_JFLAG;
            }
-jsn[zcpos] { yyval->build( 1 + code_flag(yytext[2]));
+jsn[zcpos] { yyval->build( 1 + code_flag(yytext[3]));
              return token::SINS_JFLAG;
            }
 jseq       { yyval->build(  0); return token::SINS_JTEST; }

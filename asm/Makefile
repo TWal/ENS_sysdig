@@ -1,5 +1,5 @@
 
-.PHONY : all messy all clean cleantmp
+.PHONY : all messyall clean cleantmp
 all: messyall cleantmp
 	
 	
