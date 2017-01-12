@@ -96,3 +96,38 @@ binaryToIntegral = fromIntegral . fst . foldr (\c (res, pow2) -> (res + pow2*(or
 
 binaryToInt8 :: String -> Int8
 binaryToInt8 = binaryToIntegral
+
+binaryToInt :: String -> Int
+binaryToInt = binaryToIntegral
+
+
+(<::) :: Var -> ((Var,Var), (Var,Var)) -> VarMonad (Var,Var)
+v <:: ((v11,v12),(v21,v22)) = do
+  res1 <- v <: (v11,v21)
+  res2 <- v <: (v12,v22)
+  return (res1,res2)
+
+(<:::) :: Var -> ((Var,Var,Var), (Var,Var,Var)) -> VarMonad (Var,Var,Var)
+v <::: ((v11,v12,v13),(v21,v22,v23)) = do
+  res1 <- v <: (v11,v21)
+  res2 <- v <: (v12,v22)
+  res3 <- v <: (v13,v23)
+  return (res1,res2,res3)
+
+(<::::) :: Var -> ((Var,Var,Var,Var), (Var,Var,Var,Var)) -> VarMonad (Var,Var,Var,Var)
+v <:::: ((v11,v12,v13,v14),(v21,v22,v23,v24)) = do
+  res1 <- v <: (v11,v21)
+  res2 <- v <: (v12,v22)
+  res3 <- v <: (v13,v23)
+  res4 <- v <: (v14,v24)
+  return (res1,res2,res3,res4)
+
+(<:::::) :: Var -> ((Var,Var,Var,Var,Var), (Var,Var,Var,Var,Var)) -> VarMonad (Var,Var,Var,Var,Var)
+v <::::: ((v11,v12,v13,v14,v15),(v21,v22,v23,v24,v25)) = do
+  res1 <- v <: (v11,v21)
+  res2 <- v <: (v12,v22)
+  res3 <- v <: (v13,v23)
+  res4 <- v <: (v14,v24)
+  res5 <- v <: (v15,v25)
+  return (res1,res2,res3,res4,res5)
+
