@@ -20,7 +20,7 @@ memory_system fun dt addr = runVM (make_gen "memory_system") $ do
     is_w  <- select2_bit 1 fun3 fun2
     is_c  <- select2_bit 2 fun3 fun2
 
-    -- Are we performing a write operation ?
+    -- Are we performing a read operation ?
     reading'  <- select2_bit 1 fun1 fun0
     reading'' <- is_c &: reading'
     reading   <- is_r |: reading''
@@ -64,9 +64,8 @@ memory_system fun dt addr = runVM (make_gen "memory_system") $ do
     ince <- pop |: ret
     esp  <- push |: ince
 
-    (incsp,_) <- full_adder 16 sp c2
-    (decsp,_) <- full_adder 16 sp cmp2
-    wsp       <- ince <: (incsp,decsp)
+    ad  <- ince <: (c2,cmp2)
+    wsp <- full_adder 16 sp ad
 
     return (reading,read_nap,esp,wsp)
 
