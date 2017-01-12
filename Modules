@@ -96,8 +96,9 @@ ALU :
         Op1 : 16 bits : In
         Op2 : 16 bits : In
         Res : 16 bits : Out
+        ResEn : 1bit : Out
         Flags : 5 *1bit : Out
-        En : 1bit : Out
+        FlagsEn : 1bit : Out
 
     Submodules :
         SimpleUn : neg + incr + decr + neg
