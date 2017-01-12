@@ -4,6 +4,7 @@ import NetList
 import Data.Int
 import Control.Monad
 import Data.Int
+import Data.Char (ord)
 
 -- Returns a bit true if n4 (a 4-sized nap) holds the value i
 select4_bit :: Int8 -> Var -> VarMonad Var
@@ -90,3 +91,8 @@ long_select2 = long_select sel
         select2_bit i v1 v0
 long_select4 = long_select select4_bit
 
+binaryToIntegral :: (Integral a) => String -> a
+binaryToIntegral = fromIntegral . fst . foldr (\c (res, pow2) -> (res + pow2*(ord c - ord '0'), 2*pow2)) (0, 1)
+
+binaryToInt8 :: String -> Int8
+binaryToInt8 = binaryToIntegral
