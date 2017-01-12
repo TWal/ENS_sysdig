@@ -89,14 +89,15 @@ Test Sytem : depOnR FlagSystem, depOnW Register System (direct access on Hi,Lo)
 
 
 
-ALU : depOnW Flag System
+ALU :
     Buses :
         Bin : 1 bit : In
-        Silent : 1 bit : In <- tell it not to update the flags
         Func : 4 bits : In
         Op1 : 16 bits : In
         Op2 : 16 bits : In
         Res : 16 bits : Out
+        Flags : 5 *1bit : Out
+        En : 1bit : Out
 
     Submodules :
         SimpleUn : neg + incr + decr + neg
