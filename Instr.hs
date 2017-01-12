@@ -23,8 +23,8 @@ instruction_system_int afunc p1 p2 alu_res alu_hiw alu_hiwe alu_low alu_lowe
     code_push <- constV 4 8
 
     pp  <- get_pp_register
-    pp1 <- fulladder 16 c1 pp
-    pp2 <- fulladder 16 c1 pp1
+    (pp1,_) <- full_adder 16 c1 pp
+    (pp2,_) <- full_adder 16 c1 pp1
     ins <- rom 16 8 pp
     val <- rom 16 8 pp1
     (op,dest,src,func) <- instruction_reader ins
@@ -65,7 +65,7 @@ instruction_system_int afunc p1 p2 alu_res alu_hiw alu_hiwe alu_low alu_lowe
     wsp     <- return mem_wsp
     wmem    <- return mem_nap
     addr'   <- mem_reading <: (src,dest)
-    addr''  <- fulladder 16 addr' val
+    (addr'',_) <- full_adder 16 addr' val
     addr''' <- isl <: (addr'',addr')
     addr    <- ical <: (npp,addr''')
 
@@ -73,7 +73,7 @@ instruction_system_int afunc p1 p2 alu_res alu_hiw alu_hiwe alu_low alu_lowe
     isjmp' <- istst &: test_out
     isjmp  <- long_or [isjmp', ijmp, ijfs, ijfl]
     cad <- nisl <: (c2,c1)
-    jpp <- fulladdr 16 cad npp
+    (jpp,_) <- full_adder 16 cad npp
     jmpdest <- isl <: (val,jpp)
 
     -- Registers operations
