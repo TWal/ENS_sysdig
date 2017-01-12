@@ -15,7 +15,7 @@ pp_register w = constV 1 1 >>= \we -> return $ make_register w we "pp"
 get_pp_register = return $ get_register "pp"
 
 instruction_system_int test_func test_src test_dest alu_res alu_hiw alu_hiwe alu_low alu_lowe
-                       mem_reading mem_nap mem_esp mem_wsp
+                       mem_reading mem_nap mem_esp mem_wsp mem_ret
                        test_out flag_code_out =
  runVM (make_gen "instruction_system") $ do
     c1        <- constV 16 1
@@ -34,13 +34,13 @@ instruction_system_int test_func test_src test_dest alu_res alu_hiw alu_hiwe alu
     next_is_long       <- next_ins @: 3
 
     -- Instruction decoding
-    ins_alu_bin         <- select4_bit 0  op -- binary ALU instruction
-    ins_alu_un          <- select4_bit 1  op -- unary ALU instruction
-    ins_mem             <- select4_bit 2  op -- memory instruction
-    ins_jump_flag_short <- select4_bit 4  op -- jump on flag, short instruction
-    ins_jump_test_short <- select4_bit 5  op -- jump on test, short instruction
-    ins_jump_flag_long  <- select4_bit 8  op -- jump on flag, long instruction
-    ins_jump_test_long  <- select4_bit 9  op -- jump on test, long intruction
+    ins_alu_bin         <- select4_bit  0 op -- binary ALU instruction
+    ins_alu_un          <- select4_bit  1 op -- unary ALU instruction
+    ins_mem             <- select4_bit  2 op -- memory instruction
+    ins_jump_flag_short <- select4_bit  4 op -- jump on flag, short instruction
+    ins_jump_test_short <- select4_bit  5 op -- jump on test, short instruction
+    ins_jump_flag_long  <- select4_bit  8 op -- jump on flag, long instruction
+    ins_jump_test_long  <- select4_bit  9 op -- jump on test, long intruction
     ins_jump            <- select4_bit 10 op -- jump instruction
     ins_call            <- select4_bit 11 op -- call instruction
     ins_mem_offset      <- select4_bit 12 op -- memory instruction with offset
@@ -77,8 +77,10 @@ instruction_system_int test_func test_src test_dest alu_res alu_hiw alu_hiwe alu
     is_jmp      <- long_or [is_jmp_test, is_jmp_flag, ins_jump]
     cad         <- next_is_long <: (c2,c1)
     (jpp,_)     <- full_adder 16 cad next_pp
+    jump_on_ret <- mem_enable &: mem_ret
+    jmpdest'    <- jump_on_ret <: (wsp,jpp)
     jump_on_val <- is_long |: is_call
-    jmpdest     <- jump_on_vall <: (val,jpp)
+    jmpdest     <- jump_on_vall <: (val,jmpdest')
 
     -- Registers operations
     read_cmd  <- return src
