@@ -67,5 +67,5 @@ memory_system fun dt addr = runVM (make_gen "memory_system") $ do
     ad      <- ince <: (c2,cmp2)
     (wsp,_) <- full_adder 16 sp ad
 
-    return (reading,read_nap,esp,wsp)
+    return (reading,read_nap,esp,wsp,ret)
 

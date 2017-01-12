@@ -22,7 +22,7 @@ netlist'' = (dps, [rd,rdt,get_register "sp"])
        hiwe = ("hiwe", 1,  Econst 0)
        (_,_,dps) = register_manager rcmd wcmd wval we
                                     low lowe hiw hiwe spw spwe
-       (rd,rdt,spwe,spw) = memory_system fun dt addr
+       (rd,rdt,spwe,spw,_) = memory_system fun dt addr
        fun  = ("fun", 4, Einput)
        dt   = ("data", 16, Einput)
        addr = ("addr", 16, Einput)
