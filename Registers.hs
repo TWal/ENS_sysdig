@@ -22,8 +22,8 @@ make_register w we name = (rr,rt)
 
 -- The register manager. Returns readrreg, readwreg, and the direct access
 -- registers.
--- The direct access registers are in order of their numbers, ie Hi, Lo and sp
--- Thus the returned value is : (readrreg, readwreg, hi, lo, sp)
+-- The returned value is : (readrreg, readwreg, list of variables to compute)
+-- TODO : ^ outdated commentary, update it
 -- When contradictory write orders are given on direct access registers, the
 -- direct access one is selected.
 register_manager readcmd writecmd writewreg we
