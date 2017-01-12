@@ -7,9 +7,6 @@ import Utility
 -- in all ALU c , o ,s , ... designate flags
 
 alu bin func op1 op2 = runVM (make_gen "alu") $ do
-
-
-
   return (flags,out)
 
 
@@ -33,10 +30,10 @@ simpleUnInt n c ix ox input = do
 
 simpleUn uncode op1 = runVM (make_gen "simpleUn") $ do
   l <- mapM (\(i,c) -> constV 3 c >>= \v -> return (i,v)) [
-    (0,2),
-    (1,7),
-    (2,4),
-    (3,6)]
+    (binaryToInt8 "0",  binaryToInt8 "10"),
+    (binaryToInt8 "1",  binaryToInt8 "111"),
+    (binaryToInt8 "10", binaryToInt8 "100"),
+    (binaryToInt8 "11", binaryToInt8 "110")]
   bits <- long_select2 uncode l
   c <- bits @: 2
   ix <- bits @: 1
@@ -65,15 +62,14 @@ simpleBinInt n c xab andab = do
 
 simpleBin bincode a b = runVM (make_gen "simpleBin") $ do
   l <- mapM (\(i,c) -> constV 7 c >>= \v -> return (i,v)) [
-    (8,1),
-    (9,5),
-    (10,41),
-    (11,45),
-    (12,114),
-    (13,0)
-    (14,2)
-    (15,18)
-    ]
+    (binaryToInt8 "1000", binaryToInt8 "1"),
+    (binaryToInt8 "1001", binaryToInt8 "101"),
+    (binaryToInt8 "1010", binaryToInt8 "101001"),
+    (binaryToInt8 "1011", binaryToInt8 "101101"),
+    (binaryToInt8 "1100", binaryToInt8 "1110010"),
+    (binaryToInt8 "1101", binaryToInt8 ""),
+    (binaryToInt8 "1110", binaryToInt8 "10"),
+    (binaryToInt8 "1111", binaryToInt8 "10010")]
   bits <- long_select4 bincode l
   ax <- bits @:6
   bx <- bits @:5
