@@ -11,15 +11,15 @@ instruction_reader ins = do
     func <- ins !!: (0,3)
     return (op,dest,src,func)
 
-pp_register w = constV 1 1 >>= \we -> make_register w we "pp"
-get_pp_register = get_register "pp"
+pp_register w = constV 1 1 >>= \we -> return $ make_register w we "pp"
+get_pp_register = return $ get_register "pp"
 
 instruction_system_int afunc p1 p2 alu_res alu_hiw alu_hiwe alu_low alu_lowe
                        mem_reading mem_nap mem_esp mem_wsp
                        test_out =
  runVM (make_gen "instruction_system") $ do
     c1 <- constV 16 1
-    c1 <- constV 16 2
+    c2 <- constV 16 2
     code_push <- constV 4 8
 
     pp  <- get_pp_register
@@ -79,7 +79,7 @@ instruction_system_int afunc p1 p2 alu_res alu_hiw alu_hiwe alu_low alu_lowe
     -- Registers operations
     rcmd <- return src
     wcmd <- return dest
-    rgdt <- isalu <: (alu_res,mem_data)
+    rgdt <- isalu <: (alu_res,mem_nap)
     rgwe <- isalu |: mem_reading
 
     -- Update pp
