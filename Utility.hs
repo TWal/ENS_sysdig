@@ -131,3 +131,6 @@ v <::::: ((v11,v12,v13,v14,v15),(v21,v22,v23,v24,v25)) = do
   res5 <- v <: (v15,v25)
   return (res1,res2,res3,res4,res5)
 
+inputV ::String -> Int8 -> Var
+inputV s i = (s,i,Einput)
+

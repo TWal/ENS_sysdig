@@ -9,7 +9,9 @@ import Utility
 import Registers
 import Memory
 import Flags
+import ALU
 -- On Mux assumes 1 -> first choice
+
 
 netlist'' = (dps, [rd,rdt,get_register "sp"])
  where rcmd = ("rcmd", 4, Econst 0)
@@ -55,6 +57,14 @@ netlist' = (dps, [out])
        ws   = ("ws", 1, Eselect 4 win)
        out  = flag_code code
 
+aluNetlist :: ([Var],[Var])
+aluNetlist = ([],[out,wen,z,c,p,o,s,fen])
+  where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
+        bin = inputV "bin" 1
+        func = inputV "func" 4
+        op1 = inputV "op1" 16
+        op2 = inputV "op2" 16
+
 main :: IO ()
-main = putStrLn $ (\(a,b) -> writeNetlist a b) netlist''
+main = putStrLn $ (\(a,b) -> writeNetlist a b) aluNetlist
 
