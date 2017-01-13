@@ -238,10 +238,13 @@ ram i1 i2 v1 v2 v3 v4 = create (i2, Eram i1 i2 v1 v2 v3 v4)
 v1 -: v2 = create (size v1 + size v2, Econcat v1 v2)
 
 (!!:) :: Var -> (Int8,Int8) -> VarMonad Var
-v !!: (i1,i2) = create (i2 - i1 + 1, Eslice i1 i2 v)
+v !!: (i1,i2) = if i1 > i2 then fail "Invalid range for splice"
+                else if i2 >= size v then fail "Too big bound on splice"
+                else create (i2 - i1 + 1, Eslice i1 i2 v)
 
 (@:) :: Var -> Int8 -> VarMonad Var
-v @: i = create (1, Eselect i v)
+v @: i = if i >= size v then fail "Select indice too big"
+         else create (1, Eselect i v)
 
 constV :: Int8 -> Int -> VarMonad Var
 constV s i = create (s, Econst i)
