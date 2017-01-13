@@ -94,11 +94,21 @@ aluNetlist = (flagstmp,[out,wen,z,c,p,o,s,fen],[])
         op2 = inputV "op2" 16
         flagstmp = flag_system fen (z,c,p,o,s)
 
+-------------------------------------------------------------------------------
+----------------------------- Tests -------------------------------------------
+-------------------------------------------------------------------------------
+
 select4_bit_test = ([],[out1,out2],[])
  where inpt = inputV "input" 4
        out1  = runVM (make_gen "out1") $ select4_bit 3 inpt
        out2  = runVM (make_gen "out2") $ select4_bit 7 inpt
 
+full_adder_test = ([],[sum,r],[])
+ where a1      = inputV "a1" 64
+       a2      = inputV "a2" 64
+       (sum,r) = runVM (make_gen "full_adder") $ full_adder 64 a1 a2
+
 main :: IO ()
-main = putStrLn $ (\(a,b,c) -> writeNetlist a b c) select4_bit_test
+main = putNetlist full_adder_test
+ where putNetlist ntl = putStrLn $ (\(a,b,c) -> writeNetlist a b c) ntl
 
