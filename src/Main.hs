@@ -50,7 +50,7 @@ netlist' = (dps, [out])
        en   = ("en", 1, Einput)
        win  = ("win", 5, Einput)
        code = ("code", 4, Einput)
-       wz   = ("wz", 1, Eselect 0 win)
+       wz   = ("wz", 1, Eselect 0 win) 
        wc   = ("wc", 1, Eselect 1 win)
        wp   = ("wp", 1, Eselect 2 win)
        wo   = ("wo", 1, Eselect 3 win)
@@ -58,12 +58,13 @@ netlist' = (dps, [out])
        out  = flag_code code
 
 aluNetlist :: ([Var],[Var])
-aluNetlist = ([],[out,wen,z,c,p,o,s,fen])
+aluNetlist = (flagstmp,[out,wen,z,c,p,o,s,fen])
   where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
         bin = inputV "bin" 1
         func = inputV "func" 4
         op1 = inputV "op1" 16
         op2 = inputV "op2" 16
+        flagstmp = flag_system fen (z,c,p,o,s)
 
 main :: IO ()
 main = putStrLn $ (\(a,b) -> writeNetlist a b) aluNetlist

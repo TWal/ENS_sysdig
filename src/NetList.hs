@@ -146,7 +146,7 @@ writeNetlist cmps vs =
        dfs (l,s,Enand v1 v2) (sns,ai,av,ae) = rdfs v1 $ rdfs v2
            (sns,ai,av,(l ++ " = NAND " ++ label v1 ++ " " ++ label v2):ae)
        dfs (l,s,Emux v1 v2 v3) (sns,ai,av,ae) = rdfs v1 $ rdfs v2 $ rdfs v3
-           (sns,ai,av,(l ++ " = EMUX " ++ label v3 ++ " " ++ label v2 ++ " " ++ label v1):ae)
+           (sns,ai,av,(l ++ " = MUX " ++ label v3 ++ " " ++ label v2 ++ " " ++ label v1):ae)
        dfs (l,s,Erom i1 i2 v) (sns,ai,av,ae) = rdfs v
            (sns,ai,av,
                (l ++ " = ROM " ++ show i1 ++ " " ++ show i2 ++ " " ++ label v):ae)

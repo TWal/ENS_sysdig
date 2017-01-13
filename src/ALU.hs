@@ -3,6 +3,7 @@ import NetList
 import Flags
 import Registers
 import Utility
+import Debug.Trace
 
 -- in all ALU c , o ,s , ... designate flags
 alu :: Var -> Var -> Var -> Var -> (Var,Var,(Var,Var,Var,Var,Var),Var)
@@ -22,12 +23,12 @@ alu bin func op1 op2 = runVM (make_gen "alu") $ do
 
 simpleUnInt 1 c input = do
   i <- input @: 0
-  out <- c ^: input
-  co <- c &: input
+  out <- c ^: i
+  co <- c &: i
   return (co,out)
 
 simpleUnInt n c input = do
-  (oend,ci) <- simpleUnInt (n-1) c input
+  (ci,oend) <- simpleUnInt (n-1) c input
   i <- input @: (n-1)
   obeg <- ci ^: i
   co <- ci &: i
@@ -36,7 +37,7 @@ simpleUnInt n c input = do
 
 simpleUn :: Var -> Var -> (Var,Var,Var)
 simpleUn uncode op1 = runVM (make_gen "simpleUn") $ do
-  l <- mapM (\(i,c) -> constV 3 c >>= \v -> return (i,v)) [
+  l <- mapM (\(i,c) -> constV 4 c >>= \v -> return (i,v)) [
     (binaryToInt8 "00", binaryToInt "0010"),--NOT
     (binaryToInt8 "01", binaryToInt "1111"),--DECR
     (binaryToInt8 "10", binaryToInt "1100"),--INCR
@@ -46,9 +47,9 @@ simpleUn uncode op1 = runVM (make_gen "simpleUn") $ do
   c <- bits @: 2
   ix <- bits @: 1
   ox <- bits @: 0
-  ri <- op1 ^: ix
+  ri <- op1 ^-: ix
   (co,ro) <- simpleUnInt 16 c op1
-  out <- ro ^: ox
+  out <- ro ^-: ox
 
   --overflow flags
   i15 <- ri @: 15
@@ -62,20 +63,20 @@ simpleUn uncode op1 = runVM (make_gen "simpleUn") $ do
 --------------------SIMPLE BINARY OP--------------------------
 
 simpleBinInt 1 c xab andab = do
-  xabb <- xab @: 0
-  andabb <- andab @: 0
-  ario <- c ^: xabb
-  cc <- c &: andabb
-  co <- andabb |: cc
+  xabbit <- xab @: 0
+  andabbit <- andab @: 0
+  ario <- c ^: xabbit
+  cc <- c &: andabbit
+  co <- andabbit |: cc
   return (co,ario)
 
 simpleBinInt n c xab andab = do
-  (arioend,ci) <- simpleBinInt (n-1) c xab andab
-  xabb <- xab @: (n-1)
-  andabb <- andab @: (n-1)
-  ario <- ci ^: xabb
-  cc <- ci &: andabb
-  co <- andabb |: ci
+  (ci,arioend) <- simpleBinInt (n-1) c xab andab
+  xabbit <- xab @: (n-1)
+  andabbit <- andab @: (n-1)
+  ario <- ci ^: xabbit
+  cc <- ci &: andabbit
+  co <- andabbit |: ci
   out <- ario -: arioend
   return(co,out)
 
@@ -96,19 +97,19 @@ simpleBin bincode a b = runVM (make_gen "simpleBin") $ do
   ox <- bits @:4
   ci <- bits @:3
   cf <- bits @:2
-  and <- bits @:1
+  andb <- bits @:1
   ari <- bits @:0
-  ra <- a ^: ax
-  rb <- b ^: bx
+  ra <- a ^-: ax
+  rb <- b ^-: bx
   xab <- ra ^: rb
   andab <- ra &: rb
   fc <- return $ get_flag "c"
   cflag <- cf &: fc
   c <- ci ^: cflag
-  (ario,co) <- simpleBinInt 16 c xab andab
-  logo <- and <: (andab,xab)
+  (co,ario) <- simpleBinInt 16 c xab andab
+  logo <- andb <: (andab,xab)
   ro <- ari <: (ario,logo)
-  out <- ro ^: ox
+  out <- ro ^-: ox
 
   --overflow flags
   a15 <- ra @: 15

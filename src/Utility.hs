@@ -106,3 +106,7 @@ $(genMuxs 10)
 inputV ::String -> Int8 -> Var
 inputV s i = (s,i,Einput)
 
+(^-:) nap v = do
+  n <- notv nap
+  v <: (n,nap)
+
