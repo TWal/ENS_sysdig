@@ -5,7 +5,7 @@ let
         ]);
 in pkgs.stdenv.mkDerivation {
   name = "netlist-writer";
-  buildInputs = [ ghc ];
+  buildInputs = [ ghc pkgs.cabal-install pkgs.less ];
   shellHook = "eval $(egrep ^export ${ghc}/bin/ghc";
 }
 
