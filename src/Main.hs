@@ -14,7 +14,7 @@ import Instructions
 import Test
 -- On Mux assumes 1 -> first choice
 
-computer = (dps ++ flag_temp, [])
+computer = (dps ++ flag_temp, [], [])
  where ( read_reg, write_reg, dps) =
            register_manager rcmd wcmd reg_write_data reg_write_enable
                             whi wehi wlo welo wsp wesp
@@ -41,7 +41,7 @@ computer = (dps ++ flag_temp, [])
        alu_whi  = vconstV "alu_whi" 16 0
        alu_wlo  = vconstV "alu_wlo" 16 0
 
-netlist'' = (dps, [rd,rdt,get_register "sp"])
+netlist'' = (dps, [rd,rdt,get_register "sp"], [])
  where rcmd = ("rcmd", 4, Econst 0)
        wcmd = ("wcmd", 4, Econst 0)
        wval = ("wval", 16, Econst 0)
@@ -58,7 +58,7 @@ netlist'' = (dps, [rd,rdt,get_register "sp"])
        addr = ("addr", 16, Einput)
 
 -- Shows how to do recursive definition
-netlist = (dps, [rr,rw])
+netlist = (dps, [rr,rw], [])
  where rcmd = ("rcmd", 4,  Einput)
        wcmd = ("wcmd", 4,  Einput)
        wval = ("wval", 16, Einput)
@@ -73,7 +73,7 @@ netlist = (dps, [rr,rw])
        (rr,rw,dps) = register_manager rcmd wcmd real_write we
                                       low lowe hiw hiwe spw spwe
 
-netlist' = (dps, [out])
+netlist' = (dps, [out], [])
  where dps  = flag_system en (wz,wc,wp,wo,ws)
        en   = ("en", 1, Einput)
        win  = ("win", 5, Einput)
@@ -85,8 +85,8 @@ netlist' = (dps, [out])
        ws   = ("ws", 1, Eselect 4 win)
        out  = flag_code code
 
-aluNetlist :: ([Var],[Var])
-aluNetlist = (flagstmp,[out,wen,z,c,p,o,s,fen])
+aluNetlist :: ([Var],[Var],[String])
+aluNetlist = (flagstmp,[out,wen,z,c,p,o,s,fen],[])
   where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
         bin = inputV "bin" 1
         func = inputV "func" 4
@@ -95,5 +95,5 @@ aluNetlist = (flagstmp,[out,wen,z,c,p,o,s,fen])
         flagstmp = flag_system fen (z,c,p,o,s)
 
 main :: IO ()
-main = putStrLn $ (\(a,b) -> writeNetlist a b) aluNetlist
+main = putStrLn $ (\(a,b,c) -> writeNetlist a b c) aluNetlist
 

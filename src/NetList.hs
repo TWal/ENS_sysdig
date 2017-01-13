@@ -116,15 +116,15 @@ remove_double secure l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_dou
                                let (v',mp') = remove_double' v mp in (Eslice i1 i2 v', mp')
                 Eselect i v -> let (v',mp') = remove_double' v mp in (Eselect i v', mp')
 
-writeNetlist :: [Var] -> [Var] -> String
-writeNetlist cmps vs =
+writeNetlist :: [Var] -> [Var] -> [String] -> String
+writeNetlist cmps vs other_outputs =
     let outputs = map label vs in
     let filter = remove_double outputs in
     -- let filter = id in
     let usedv = filter $ cmps ++ vs in
     let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) $ usedv in
        "INPUT "    ++ sepBy ", " id       inputs
-    ++ "\nOUTPUT " ++ sepBy ", " id       outputs
+    ++ "\nOUTPUT " ++ sepBy ", " id       (outputs ++ other_outputs)
     ++ "\nVAR "    ++ sepBy ", " show_var vars
     ++ "\nIN\n"    ++ sepBy "\n" id       eqs
  where rdfs v@(l,s,_) x@(sns,ai,av,ae) = if elem l sns then x
