@@ -26,6 +26,8 @@ data TVar =
   | Eselect Int8 Var
   deriving (Show)
 
+
+
 make_gen :: String -> [String]
 make_gen p = map (\c -> "__" ++ p ++ "_" ++ show c) [1..]
 
@@ -251,3 +253,7 @@ v @: i = if i >= size v then fail "Select indice too big"
 constV :: Int8 -> Int -> VarMonad Var
 constV s i = create (s, Econst i)
 
+type Netlist = ([Var],[Var],[String]) -- to be calculated variables,out varables names, out names for debug
+
+putNetlist :: Netlist -> IO ()
+putNetlist (a,b,c) = putStrLn $ writeNetlist a b c

@@ -85,7 +85,7 @@ netlist' = (dps, [out], [])
        ws   = ("ws", 1, Eselect 4 win)
        out  = flag_code code
 
-aluNetlist :: ([Var],[Var],[String])
+aluNetlist :: Netlist
 aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
                         renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],[])
   where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
@@ -110,6 +110,4 @@ full_adder_test = ([],[sum,r],[])
        (sum,r) = runVM (make_gen "full_adder") $ full_adder 64 a1 a2
 
 main :: IO ()
-main = putNetlist full_adder_test
- where putNetlist ntl = putStrLn $ (\(a,b,c) -> writeNetlist a b c) ntl
-
+main = putNetlist aluNetlist
