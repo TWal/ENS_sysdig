@@ -86,7 +86,8 @@ netlist' = (dps, [out], [])
        out  = flag_code code
 
 aluNetlist :: ([Var],[Var],[String])
-aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],["ismov","movsf"])
+aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
+                        renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],[])
   where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
         bin = inputV "bin" 1
         func = inputV "func" 4

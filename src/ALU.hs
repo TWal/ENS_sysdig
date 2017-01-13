@@ -15,7 +15,7 @@ alu bin func op1 op2 = runVM (make_gen "alu") $ do
   func3 <- func @: 3
   nfunc3 <- notv func3
   wen <- nfunc3 |: bin
-  movsf <- renameVM "movsf" $ select4_bit 1 func
+  movsf <- select4_bit 1 func
 
   ismovs <- movsf &: bin
   fen <- notv ismovs
@@ -30,7 +30,7 @@ simpleUnInt 1 c input = do
 
 simpleUnInt n c input = do
   (ci,oend) <- simpleUnInt (n-1) c input
-  i <- input @: (n-1)
+  i <-  input @: (n-1)
   obeg <- ci ^: i
   co <- ci &: i
   out <- obeg -: oend
@@ -45,11 +45,11 @@ simpleUn uncode op1 = runVM (make_gen "simpleUn") $ do
     (binaryToInt8 "11", binaryToInt "1110")]--NEG
   bits <- long_select2 uncode l
   overen <- bits @: 3
-  c <- bits @: 2
+  c <-  bits @: 2
   ix <- bits @: 1
-  ox <- bits @: 0
-  ri <- op1 ^-: ix
-  (co,ro) <- simpleUnInt 16 c op1
+  ox <-  bits @: 0
+  ri <-  op1 ^-: ix
+  (co,ro) <- simpleUnInt 16 c ri
   out <- ro ^-: ox
 
   --overflow flags
@@ -195,8 +195,7 @@ binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
   binshiftres <- isbin <::: (binres,(zero,zero,shiftres))
   ismovtmp <- code1 |: code2
   nismov <- ismovtmp |: code3
-  ismov' <- notv nismov
-  let ismov = renameV "ismov" ismov'
+  ismov <- notv nismov
   ismov <::: ((zero,zero,op1),binshiftres)
 
 
@@ -215,8 +214,7 @@ unGlob code op1 op2 = runVM (make_gen "unGlob") $ do
   isnotSimple <:::((zero,zero,prout),simpleres)
 
 setFlags c o out = runVM (make_gen "setFlags") $ do
-  nz' <- nap_or out
-  let nz = renameV "nz" nz'
+  nz <- nap_or out
   z <- notv nz
   np <- out @: 15
   p <- notv np

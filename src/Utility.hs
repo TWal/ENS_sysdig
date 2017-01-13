@@ -9,31 +9,31 @@ import Data.Char (ord)
 -- Returns a bit true if n4 (a 4-sized nap) holds the value i
 select4_bit :: Int8 -> Var -> VarMonad Var
 select4_bit i n4 = do
-    b1  <- n4 @: 0
-    b2  <- n4 @: 1
-    b3  <- n4 @: 2
-    b4  <- n4 @: 3
-    bn1 <- select2_bit i1 b2 b1
-    bn2 <- select2_bit i2 b4 b3
+    b0  <- n4 @: 0
+    b1  <- n4 @: 1
+    b2  <- n4 @: 2
+    b3  <- n4 @: 3
+    bn1 <- select2_bit i1 b1 b0
+    bn2 <- select2_bit i2 b3 b2
     r   <- bn1 &: bn2
     return r
  where i1 = i `mod` 4
        i2 = (i `div` 4) `mod` 4
 
--- Returns true is (v1,v2) holds the value of i (v1 is the LSB)
+-- Returns true is v1v0 holds the value of i (v0 is the LSB)
 select2_bit :: Int8 -> Var -> Var -> VarMonad Var
-select2_bit i v2 v1 = case (i `mod` 2,(i `div` 2) `mod` 2) of
-    (0,0) -> do r1 <- notv v1
-                r2 <- notv v2
-                r  <- r1 &: r2
+select2_bit i v1 v0 = case ((i `div` 2) `mod` 2,i `mod` 2) of
+    (0,0) -> do r0 <- notv v0
+                r1 <- notv v1
+                r  <- r0 &: r1
                 return r
     (0,1) -> do r1 <- notv v1
-                r  <- r1 &: v2
+                r  <- r1 &: v0
                 return r
-    (1,0) -> do r2 <- notv v2
-                r  <- v1 &: r2
+    (1,0) -> do r0 <- notv v0
+                r  <- v1 &: r0
                 return r
-    (1,1) -> do r  <- v1 &: v2
+    (1,1) -> do r  <- v0 &: v1
                 return r
 
 -- Simple adder between three bits
@@ -70,7 +70,7 @@ long_and = long_bin (&:)
 
 nap_bin :: (Var -> Var -> VarMonad Var) -> Var -> VarMonad Var
 nap_bin b n = n @: 0 >>= \d -> foldM (\v -> \i -> n @: i >>= \v2 -> b v v2)
-                                     d [1 .. (s-1)] 
+                                     d [1 .. (s-1)]
  where s = size n
 
 nap_or = nap_bin (|:)

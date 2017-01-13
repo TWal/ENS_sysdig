@@ -161,7 +161,7 @@ writeNetlist cmps vs other_outputs =
                          ++ " "       ++ label v3
                          ++ " "       ++ label v4):ae)
        dfs (l,s,Econcat v1 v2) (sns,ai,av,ae) = rdfs v1 $ rdfs v2
-           (sns,ai,av,(l ++ " = CONCAT " ++ label v1 ++ " " ++ label v2):ae)
+           (sns,ai,av,(l ++ " = CONCAT " ++ label v2 ++ " " ++ label v1):ae)
        dfs (l,s,Eslice i1 i2 v) (sns,ai,av,ae) = rdfs v
            (sns,ai,av,(l ++ " = SLICE " ++ show i1 ++ " " ++ show i2
                          ++ " " ++ label v):ae)
