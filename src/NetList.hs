@@ -70,12 +70,13 @@ fromv v = EqVar v
 instance Eq EqVar where
     (EqVar x) == (EqVar y) = test_var_eq 10000 x y
 
-remove_double :: [Var] -> [Var]
-remove_double l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_double' v mp in (nv : l, nmp)) ([],[]) l
+remove_double :: [String] -> [Var] -> [Var]
+remove_double secure l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_double' v mp in (nv : l, nmp)) ([],[]) l
   where remove_double' :: Var -> [(EqVar,Var)] -> (Var,[(EqVar,Var)])
-        remove_double' x@(l,s,tv) mp = case lookup (fromv x) mp of
-          Just t    -> (t,mp)
-          Nothing   -> ((l,s,ntv),(fromv x,(l,s,ntv)) : nmp)
+        remove_double' x@(l,s,tv) mp = if l `elem` secure then ((l,s,ntv),(fromv x,(l,s,ntv)) : nmp)
+            else case lookup (fromv x) mp of
+             Just t    -> (t,mp)
+             Nothing   -> ((l,s,ntv),(fromv x,(l,s,ntv)) : nmp)
          where (ntv,nmp) = case tv of
                 Einput      -> (tv,mp)
                 Earg v      -> let (v',mp') = remove_double' v mp in (Earg v', mp')
@@ -117,10 +118,10 @@ remove_double l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_double' v 
 
 writeNetlist :: [Var] -> [Var] -> String
 writeNetlist cmps vs =
-    let filter = remove_double in
+    let outputs = map label vs in
+    let filter = remove_double outputs in
     -- let filter = id in
     let usedv = filter $ cmps ++ vs in
-    let outputs = map label vs `intersect` map label usedv in
     let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) $ usedv in
        "INPUT "    ++ sepBy ", " id       inputs
     ++ "\nOUTPUT " ++ sepBy ", " id       outputs
