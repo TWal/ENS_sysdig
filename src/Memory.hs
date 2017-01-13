@@ -4,7 +4,7 @@ import NetList
 import Utility
 import Registers
 
-memory_system fun dt addr = runVM (make_gen "memory_system") $ do
+memory_system fun en dt addr = runVM (make_gen "memory_system") $ do
     let sp = get_register "sp"
     fun0  <- fun @: 0
     fun1  <- fun @: 1
@@ -26,12 +26,14 @@ memory_system fun dt addr = runVM (make_gen "memory_system") $ do
     reading   <- is_r |: reading''
 
     -- Should we write the lower byte ?
-    wl   <- select2_bit 0 fun1 fun0
+    wl'   <- select2_bit 0 fun1 fun0
+    wl    <- en &: wl'
     -- Should we write the upper byte ?
-    wc   <- is_c &: wl
-    wh'  <- notv fun1
-    wh'' <- is_w &: wh'
-    wh   <- wc |: wh''
+    wc    <- is_c &: wl
+    wh'   <- notv fun1
+    wh''  <- is_w &: wh'
+    wh''' <- wc |: wh''
+    wh    <- en &: wh'''
 
     -- The used addresses for the two byte read
     used_addr1     <- is_c <: (sp,addr)
