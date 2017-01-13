@@ -10,8 +10,36 @@ import Registers
 import Memory
 import Flags
 import ALU
+import Instructions
+import Test
 -- On Mux assumes 1 -> first choice
 
+computer = (dps ++ flag_temp, [])
+ where ( read_reg, write_reg, dps) =
+           register_manager rcmd wcmd reg_write_data reg_write_enable
+                            whi wehi wlo welo wsp wesp
+       ( mem_reading, mem_data, mem_wesp, mem_wsp, mem_ret) =
+           memory_system fun mem_enable src addr
+       flag_cd =
+           flag_code fun
+       flag_temp =
+           flag_system flag_en flags
+       ( test_fun, test_src, test_dst, test_result) =
+           test_system test_fun src dest
+       ( alu_res, alu_wen, flags, flag_en) =
+           alu alu_bin fun src dest
+       ( alu_bin, fun, src, dest
+        , whi, wehi, wlo, welo, wsp, wesp
+        , mem_enable, addr
+        , rcmd, wcmd, reg_write_data, reg_write_enable) =
+           instruction_system test_fun test_src test_dst test_result
+                              alu_res alu_whi alu_wehi alu_wlo alu_welo
+                              mem_reading mem_data mem_wesp mem_wsp mem_ret
+                              flag_cd
+       alu_wehi = vconstV "alu_wehi" 1 0
+       alu_welo = vconstV "alu_welo" 1 0
+       alu_whi  = vconstV "alu_whi" 16 0
+       alu_wlo  = vconstV "alu_wlo" 16 0
 
 netlist'' = (dps, [rd,rdt,get_register "sp"])
  where rcmd = ("rcmd", 4, Econst 0)
@@ -24,7 +52,7 @@ netlist'' = (dps, [rd,rdt,get_register "sp"])
        hiwe = ("hiwe", 1,  Econst 0)
        (_,_,dps) = register_manager rcmd wcmd wval we
                                     low lowe hiw hiwe spw spwe
-       (rd,rdt,spwe,spw,_) = memory_system fun dt addr
+       (rd,rdt,spwe,spw,_) = memory_system we fun dt addr
        fun  = ("fun", 4, Einput)
        dt   = ("data", 16, Einput)
        addr = ("addr", 16, Einput)
