@@ -4,7 +4,6 @@ import NetList
 import GenMuxs
 import Data.Int
 import Control.Monad
-import Data.Int
 import Data.Char (ord)
 
 -- Returns a bit true if n4 (a 4-sized nap) holds the value i
@@ -113,3 +112,11 @@ vconstV nm s c = (nm, s, Econst c)
   n <- notv nap
   v <: (n,nap)
 
+renameV :: String -> Var -> Var
+renameV name (_,s,t) = (name,s,t)
+
+renameVM :: String -> VarMonad Var -> VarMonad Var
+renameVM name vm = do
+  v <- vm
+  let res = renameV name v
+  return res

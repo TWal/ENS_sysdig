@@ -15,7 +15,8 @@ alu bin func op1 op2 = runVM (make_gen "alu") $ do
   func3 <- func @: 3
   nfunc3 <- notv func3
   wen <- nfunc3 |: bin
-  movsf <- select4_bit 1 func
+  movsf <- renameVM "movsf" $ select4_bit 1 func
+
   ismovs <- movsf &: bin
   fen <- notv ismovs
   return (out,wen,flags,fen)
@@ -192,8 +193,10 @@ binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
   isbin <- return code3
   zero <- constV 1 0
   binshiftres <- isbin <::: (binres,(zero,zero,shiftres))
-  ismovtmp <- code1 &: code2
-  ismov <- ismovtmp &: code3
+  ismovtmp <- code1 |: code2
+  nismov <- ismovtmp |: code3
+  ismov' <- notv nismov
+  let ismov = renameV "ismov" ismov'
   ismov <::: ((zero,zero,op1),binshiftres)
 
 
@@ -212,12 +215,13 @@ unGlob code op1 op2 = runVM (make_gen "unGlob") $ do
   isnotSimple <:::((zero,zero,prout),simpleres)
 
 setFlags c o out = runVM (make_gen "setFlags") $ do
-  nz <- nap_and out
+  nz' <- nap_or out
+  let nz = renameV "nz" nz'
   z <- notv nz
   np <- out @: 15
   p <- notv np
   sixty <- constV 16 60
-  xor60 <- out &: sixty
-  ns <- nap_and xor60
+  xor60 <- out ^: sixty
+  ns <- nap_or xor60
   s <- notv ns
   return (z,c,p,o,s)

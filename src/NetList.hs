@@ -116,6 +116,7 @@ remove_double secure l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_dou
                                let (v',mp') = remove_double' v mp in (Eslice i1 i2 v', mp')
                 Eselect i v -> let (v',mp') = remove_double' v mp in (Eselect i v', mp')
 
+
 writeNetlist :: [Var] -> [Var] -> [String] -> String
 writeNetlist cmps vs other_outputs =
     let outputs = map label vs in

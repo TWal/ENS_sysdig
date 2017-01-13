@@ -78,7 +78,7 @@ netlist' = (dps, [out], [])
        en   = ("en", 1, Einput)
        win  = ("win", 5, Einput)
        code = ("code", 4, Einput)
-       wz   = ("wz", 1, Eselect 0 win) 
+       wz   = ("wz", 1, Eselect 0 win)
        wc   = ("wc", 1, Eselect 1 win)
        wp   = ("wp", 1, Eselect 2 win)
        wo   = ("wo", 1, Eselect 3 win)
@@ -86,7 +86,7 @@ netlist' = (dps, [out], [])
        out  = flag_code code
 
 aluNetlist :: ([Var],[Var],[String])
-aluNetlist = (flagstmp,[out,wen,z,c,p,o,s,fen],[])
+aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],["ismov","movsf"])
   where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
         bin = inputV "bin" 1
         func = inputV "func" 4
