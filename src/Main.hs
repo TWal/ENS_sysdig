@@ -94,6 +94,11 @@ aluNetlist = (flagstmp,[out,wen,z,c,p,o,s,fen],[])
         op2 = inputV "op2" 16
         flagstmp = flag_system fen (z,c,p,o,s)
 
+select4_bit_test = ([],[out1,out2],[])
+ where inpt = inputV "input" 4
+       out1  = runVM (make_gen "out1") $ select4_bit 3 inpt
+       out2  = runVM (make_gen "out2") $ select4_bit 7 inpt
+
 main :: IO ()
-main = putStrLn $ (\(a,b,c) -> writeNetlist a b c) aluNetlist
+main = putStrLn $ (\(a,b,c) -> writeNetlist a b c) select4_bit_test
 

@@ -14,8 +14,8 @@ select4_bit i n4 = do
     b2  <- n4 @: 1
     b3  <- n4 @: 2
     b4  <- n4 @: 3
-    bn1 <- select2_bit i1 b1 b2
-    bn2 <- select2_bit i2 b3 b4
+    bn1 <- select2_bit i1 b2 b1
+    bn2 <- select2_bit i2 b4 b3
     r   <- bn1 &: bn2
     return r
  where i1 = i `mod` 4
