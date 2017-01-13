@@ -1,0 +1,3 @@
+[submodule "NetCompil"]
+	path = NetCompil
+	url = git@git.eleves.ens.fr:perami/NetListCppCompiler.git
