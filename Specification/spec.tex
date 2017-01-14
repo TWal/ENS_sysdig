@@ -257,20 +257,21 @@ d'un \verb!n!, alors c'est l'inverse.
 l'expression logique calculée.
 \begin{itemize}
 \item Code 0 : \verb!eq! : $dest = src$
-\item Code 1 : \verb!g! : $dest > src$ (non signé)
-\item Code 2 : \verb!ge! : $dest \ge src$ (non signé)
-\item Code 3 : \verb!l! : $dest < src$ (non signé)
-\item Code 4 : \verb!le! : $dest \le src$ (non signé)
-\item Code 5 : \verb!gi! : $dest > src$ (signé)
-\item Code 6 : \verb!gei! : $dest \ge src$ (signé)
-\item Code 7 : \verb!li! : $dest < src$ (signé)
-\item Code 8 : \verb!lei! : $dest \le src$ (signé)
-\item Code 9 : \verb!andz! : $(dest$ et $src) = 0$
-\item Code 10 : \verb!nandz! : $\neg(dest$ et $src) = 0$
-\item Code 11 : \verb!xorz! : $(dest \oplus src) = 0$
-\item Code 12 : \verb!nxorz! : $\neg(dest \oplus src) = 0$
-\item Code 13 : \verb!eq60! : $dest = 60$
-\item Code 14 : \verb!neq60! : $dest \neq 60$
+\item Code 1 : \verb!neq! : $dest \neq src$
+\item Code 2 : \verb!g! : $dest > src$ (non signé)
+\item Code 3 : \verb!ge! : $dest \ge src$ (non signé)
+\item Code 4 : \verb!l! : $dest < src$ (non signé)
+\item Code 5 : \verb!le! : $dest \le src$ (non signé)
+\item Code 6 : \verb!gi! : $dest > src$ (signé)
+\item Code 7 : \verb!gei! : $dest \ge src$ (signé)
+\item Code 8 : \verb!li! : $dest < src$ (signé)
+\item Code 9 : \verb!lei! : $dest \le src$ (signé)
+\item Code 10 : \verb!andz! : $(dest$ et $src) = 0$
+\item Code 11 : \verb!nandz! : $\neg(dest$ et $src) = 0$
+\item Code 12 : \verb!xorz! : $(dest \oplus src) = 0$
+\item Code 13 : \verb!nxorz! : $\neg(dest \oplus src) = 0$
+\item Code 14 : \verb!eq60! : $dest = 60$
+\item Code 15 : \verb!neq60! : $dest \neq 60$
 \end{itemize}
 
 \section{Syntaxe de l'assembleur}
@@ -357,7 +358,7 @@ mettre la valeur de \verb!r2! dans le champs des minutes.
 
 \paragraph{Instructions :}
 \begin{itemize}
-\item Code 0 : Passe en mode afficheur 7 -segment (où cas où on en mette un
+\item Code 0 \verb!sseg! : Passe en mode afficheur 7-segment (où cas où on en mette un
   autre).
 \item Code 1 - 7 : écrit la nouvelle valeur de cette unité dans l'afficheur (1 :
   \verb!ws!, secondes, 2 : \verb!wmi!, minutes, 3 : \verb!wh!, heures , 4 : \verb!wwd! jour de la
