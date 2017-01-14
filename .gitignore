@@ -5,6 +5,7 @@
 dist
 Specification/**
 !*.tex
+!Makefile
 proco
 proco.cpp
 proco.net
