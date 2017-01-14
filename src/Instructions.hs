@@ -3,6 +3,11 @@ module Instructions where
 import NetList
 import Utility
 import Registers
+import Memory
+import Flags
+import ALU
+import Test
+import Control.Monad.Fix
 
 instruction_reader ins = do
     op   <- ins !!: (0,3)
@@ -14,11 +19,39 @@ instruction_reader ins = do
 pp_register w = constV 1 1 >>= \we -> return $ make_register w we "pp"
 get_pp_register = return $ get_register "pp"
 
-instruction_system test_func test_src test_dest test_out
-                   alu_res alu_hiw alu_hiwe alu_low alu_lowe
-                   mem_reading mem_nap mem_esp mem_wsp mem_ret
-                   flag_code_out =
- runVM (make_gen "instruction_system") $ do
+instruction_system_fix :: (Var, Var, Var, Var, Var, Var, Var, Var, Var, Var,
+                           Var, Var, Var, Var, Var, Var, (Var,Var,Var,Var,Var),
+                           [Var], [Var])
+instruction_system_fix = runVM (make_gen "instruction_system") $ mfix instruction_system'
+
+--instruction_system test_func test_src test_dest test_out
+--                   alu_res alu_hiw alu_hiwe alu_low alu_lowe
+--                   mem_reading mem_nap mem_esp mem_wsp mem_ret
+--                   flag_code_out =
+-- runVM (make_gen "instruction_system") $ do
+instruction_system' (is_bin_r, real_func_r, real_src_r, real_dest_r,
+                     write_hi_r, enable_hi_r, write_lo_r, enable_lo_r,
+                     wsp_r, esp_r, mem_enable_r, addr_r,
+                     read_cmd_r, write_cmd_r, reg_data_r, reg_we_r,
+                     flags_r, dps_r, flag_temp_r) = do
+    let (read_reg, write_reg, dps) =
+           register_manager read_cmd_r write_cmd_r reg_data_r reg_we_r
+                            write_hi_r enable_hi_r write_lo_r enable_lo_r wsp_r esp_r
+    let (mem_reading, mem_nap, mem_esp, mem_wsp, mem_ret) =
+           memory_system real_func_r mem_enable_r real_src_r addr_r
+    let flag_code_out =
+           flag_code real_func_r
+    let (test_func, test_src, test_dest, test_out) =
+           test_system real_func_r real_src_r real_dest_r flags_r
+    let (alu_res, alu_wen, flags, flag_en) =
+           alu is_bin_r real_func_r real_src_r real_dest_r
+    let flag_temp =
+           flag_system flag_en flags_r
+    alu_hiwe <- constV  1 0
+    alu_lowe <- constV  1 0
+    alu_hiw  <- constV 16 0
+    alu_low  <- constV 16 0
+    
     c1        <- constV 16 1
     c2        <- constV 16 2
     code_push <- constV 4 8
@@ -96,7 +129,8 @@ instruction_system test_func test_src test_dest test_out
 
     return (is_bin, real_func, real_src, real_dest, write_hi, enable_hi, write_lo, enable_lo,
             wsp, esp, mem_enable, addr,
-            read_cmd, write_cmd, reg_data, reg_we)
+            read_cmd, write_cmd, reg_data, reg_we,
+            flags, dps, flag_temp)
 
 
 
