@@ -2,11 +2,13 @@
 #define INSTR_H
 
 #include <iostream>
+#include "location.hh"
 #include <map>
 
 typedef unsigned short ushort;
 
 
+void error (const yy::location& loc,const std::string& st);
 
 struct Instruction {
     Instruction():opcode(0),dest(0),src(0),func(0){}
@@ -14,6 +16,7 @@ struct Instruction {
     char dest;
     char src;
     char func;
+    yy::location loc;
     virtual int getSize() = 0;
     virtual void write(std::ostream& out,const std::map<std::string,ushort>& labels) = 0;
     virtual void print(std::ostream& out,const std::map<std::string,ushort>& labels) {
@@ -52,7 +55,13 @@ struct LongI : public Instruction
         res[1] = src;
         res [1] += func << 4;
         ushort rval = val;
-        if (label != "") rval = labels.at(label);
+        if (label != ""){
+            if (labels.find(label) == labels.end()){
+                error(loc,"label " + label + " does not exist");
+                exit(1);
+            }
+            rval = labels.at(label);
+        }
         reinterpret_cast<ushort*>(res)[1] = rval;
         out.write(res,4);
     }

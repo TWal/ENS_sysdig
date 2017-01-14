@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     for(auto i : instrs) {
         i->write(output,labels);
     }
-    if(verbose) cout << "Assemebling has finished with success";
+    if(verbose) cout << "Assembling has finished with success";
 
 
     return 0 ;

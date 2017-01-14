@@ -59,10 +59,13 @@ void yy::parser::error(const yy::location& loc,const std::string& st)
 %token                  LINS_LIMM
 %token  <int>           LINS_JFLAG
 %token  <int>           LINS_JTEST
+%token                  LINS_GPU
 
 %token  <int>           INS_MEM_BIN
 %token  <int>           INS_MEM_UN
 %token  <int>           INS_MEM
+
+%token  <int>           SGPU
 
 %type   <Instruction*> shortInstr
 %type   <Instruction*> longInstr
@@ -216,6 +219,14 @@ longInstr:
             tmp->label = $4;
             $$ = tmp;
         }
+    |   LINS_GPU SGPU REGISTER
+        {
+            auto tmp = new LongI;
+            tmp->opcode = 15;
+            tmp->src = $3;
+            tmp->val = $2;
+            $$ = tmp;
+        }
     ;
 
 membin:
@@ -249,22 +260,25 @@ program:
         newlines
     |   program LABEL DOTS newlines
         {
-            //cout << "Parser label :" << $2 << " at : " << size <<endl; 
+            //cout << "Parser label :" << $2 << " at : " << size <<endl;
             labels[$2] = size;
         }
 
     |   program shortInstr newlines
         {
             size += 2;
+            $2->loc = @2;
             res.push_back($2);
         }
     |   program longInstr newlines
         {
             size +=4;
+            $2->loc = @2;
             res.push_back($2);
         }
     |   program membin newlines
         {
+            $2->loc = @2;
             res.push_back($2);
         }
         ;

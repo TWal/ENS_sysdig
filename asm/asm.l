@@ -46,6 +46,7 @@ label  {letter}({letter}|{digit}|_)*
 %%
 
 [ \t]      ; /* Skip whitespace */
+#[^\n]+\n  {loc->lines(); return token::NEWLINE;}
 :          return token::DOTS;
 {digit}+   { yyval->build( atoi(yytext)); return token::IMMEDIATE; }
 \n         {loc->lines() ;return token::NEWLINE;}
@@ -102,33 +103,39 @@ jsn[zcpos] { yyval->build( 1 + code_flag(yytext[3]));
              return token::SINS_JFLAG;
            }
 jseq       { yyval->build(  0); return token::SINS_JTEST; }
-jsg        { yyval->build(  1); return token::SINS_JTEST; }
-jsl        { yyval->build(  2); return token::SINS_JTEST; }
-jsle       { yyval->build(  3); return token::SINS_JTEST; }
-jsgi       { yyval->build(  4); return token::SINS_JTEST; }
-jsgei      { yyval->build(  5); return token::SINS_JTEST; }
-jsli       { yyval->build(  6); return token::SINS_JTEST; }
-jslei      { yyval->build(  7); return token::SINS_JTEST; }
-jsandz     { yyval->build(  8); return token::SINS_JTEST; }
-jsnandz    { yyval->build(  9); return token::SINS_JTEST; }
-jsxorz     { yyval->build( 10); return token::SINS_JTEST; }
-jsnxorz    { yyval->build( 11); return token::SINS_JTEST; }
-jseq60     { yyval->build( 12); return token::SINS_JTEST; }
-jsneq60    { yyval->build( 13); return token::SINS_JTEST; }
-jeq        { yyval->build(  0); return token::LINS_JTEST; }
-jg         { yyval->build(  1); return token::LINS_JTEST; }
-jl         { yyval->build(  2); return token::LINS_JTEST; }
-jle        { yyval->build(  3); return token::LINS_JTEST; }
-jgi        { yyval->build(  4); return token::LINS_JTEST; }
-jgei       { yyval->build(  5); return token::LINS_JTEST; }
-jli        { yyval->build(  6); return token::LINS_JTEST; }
-jlei       { yyval->build(  7); return token::LINS_JTEST; }
-jandz      { yyval->build(  8); return token::LINS_JTEST; }
-jnandz     { yyval->build(  9); return token::LINS_JTEST; }
-jxorz      { yyval->build( 10); return token::LINS_JTEST; }
-jnxorz     { yyval->build( 11); return token::LINS_JTEST; }
-jeq60      { yyval->build( 12); return token::LINS_JTEST; }
-jneq60     { yyval->build( 13); return token::LINS_JTEST; }
+jsneq      { yyval->build(  1); return token::SINS_JTEST; }
+jsg        { yyval->build(  2); return token::SINS_JTEST; }
+jsge       { yyval->build(  3); return token::SINS_JTEST; }
+jsl        { yyval->build(  4); return token::SINS_JTEST; }
+jsle       { yyval->build(  5); return token::SINS_JTEST; }
+jsgi       { yyval->build(  6); return token::SINS_JTEST; }
+jsgei      { yyval->build(  7); return token::SINS_JTEST; }
+jsli       { yyval->build(  8); return token::SINS_JTEST; }
+jslei      { yyval->build(  9); return token::SINS_JTEST; }
+jsandz     { yyval->build( 10); return token::SINS_JTEST; }
+jsnandz    { yyval->build( 11); return token::SINS_JTEST; }
+jsxorz     { yyval->build( 12); return token::SINS_JTEST; }
+jsnxorz    { yyval->build( 13); return token::SINS_JTEST; }
+jseq60     { yyval->build( 14); return token::SINS_JTEST; }
+jsneq60    { yyval->build( 15); return token::SINS_JTEST; }
+
+jeq       { yyval->build(  0); return token::LINS_JTEST; }
+jneq      { yyval->build(  1); return token::LINS_JTEST; }
+jg        { yyval->build(  2); return token::LINS_JTEST; }
+jge       { yyval->build(  3); return token::LINS_JTEST; }
+jl        { yyval->build(  4); return token::LINS_JTEST; }
+jle       { yyval->build(  5); return token::LINS_JTEST; }
+jgi       { yyval->build(  6); return token::LINS_JTEST; }
+jgei      { yyval->build(  7); return token::LINS_JTEST; }
+jli       { yyval->build(  8); return token::LINS_JTEST; }
+jlei      { yyval->build(  9); return token::LINS_JTEST; }
+jandz     { yyval->build( 10); return token::LINS_JTEST; }
+jnandz    { yyval->build( 11); return token::LINS_JTEST; }
+jxorz     { yyval->build( 12); return token::LINS_JTEST; }
+jnxorz    { yyval->build( 13); return token::LINS_JTEST; }
+jeq60     { yyval->build( 14); return token::LINS_JTEST; }
+jneq60    { yyval->build( 15); return token::LINS_JTEST; }
+
 
 jmp        return token::LINS_JMP;
 call       return token::LINS_CALL;
@@ -149,6 +156,16 @@ wrh        { yyval->build(  6); return token::INS_MEM_BIN; }
 push       { yyval->build(  8); return token::INS_MEM_UN; }
 pop        { yyval->build(  9); return token::INS_MEM_UN; }
 ret        { yyval->build( 10); return token::INS_MEM; }
+
+gpu        { return token::LINS_GPU; }
+
+ws         { yyval->build(  1); return token::SGPU; }
+wmi        { yyval->build(  2); return token::SGPU; }
+wh         { yyval->build(  3); return token::SGPU; }
+wwd        { yyval->build(  4); return token::SGPU; }
+wd         { yyval->build(  5); return token::SGPU; }
+wmo        { yyval->build(  6); return token::SGPU; }
+wy         { yyval->build(  7); return token::SGPU; }
 
 {label}    { yyval->build(std::string(yytext));
              //cout << "Found label :" << yytext << endl;
