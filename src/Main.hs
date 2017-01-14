@@ -75,18 +75,6 @@ netlist = (dps, [rr,rw], [])
        real_write = ("real_write", 16, Eor wval rw)
        (rr,rw,dps) = register_manager rcmd wcmd real_write we
                                       low lowe hiw hiwe spw spwe
-netlist' :: Netlist
-netlist' = (dps, [out], [])
- where dps  = flag_system en (wz,wc,wp,wo,ws)
-       en   = ("en", 1, Einput)
-       win  = ("win", 5, Einput)
-       code = ("code", 4, Einput)
-       wz   = ("wz", 1, Eselect 0 win)
-       wc   = ("wc", 1, Eselect 1 win)
-       wp   = ("wp", 1, Eselect 2 win)
-       wo   = ("wo", 1, Eselect 3 win)
-       ws   = ("ws", 1, Eselect 4 win)
-       out  = flag_code code
 
 aluNetlist :: Netlist
 aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
@@ -105,14 +93,36 @@ aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,rename
 select4_bit_test :: Netlist
 select4_bit_test = ([],[out1,out2],[])
  where inpt = inputV "input" 4
-       out1  = runVM (make_gen "out1") $ select4_bit 3 inpt
-       out2  = runVM (make_gen "out2") $ select4_bit 7 inpt
+       out1 = runVM (make_gen "out1") $ select4_bit 3 inpt
+       out2 = runVM (make_gen "out2") $ select4_bit 7 inpt
 
 full_adder_test ::Netlist
 full_adder_test = ([],[res,r],[])
  where a1      = inputV "a1" 64
        a2      = inputV "a2" 64
        (res,r) = runVM (make_gen "full_adder") $ full_adder 64 a1 a2
+
+flag_system_test = (flags, [z,c,p,o,s], [])
+ where inz         = inputV "inz"  1
+       inc         = inputV "inc"  1
+       inp         = inputV "inp"  1
+       ino         = inputV "ino"  1
+       ins         = inputV "ins"  1
+       en          = inputV "en" 1
+       flags       = flag_system en (inz, inc, inp, ino, ins)
+       (z,c,p,o,s) = (get_flag "z", get_flag "c", get_flag "p", get_flag "o", get_flag "s")
+
+flag_code_test = (flags, [out], [])
+ where en    = inputV "en" 1
+       win   = inputV "win" 5
+       code  = inputV "code" 4
+       wz    = ("wz", 1, Eselect 0 win)
+       wc    = ("wc", 1, Eselect 1 win)
+       wp    = ("wp", 1, Eselect 2 win)
+       wo    = ("wo", 1, Eselect 3 win)
+       ws    = ("ws", 1, Eselect 4 win)
+       out   = flag_code code
+       flags = flag_system en (wz,wc,wp,wo,ws)
 
 main :: IO ()
 main = putNetlist aluNetlist
