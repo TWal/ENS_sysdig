@@ -5,113 +5,119 @@ import Data.Int
 import Flags
 import Utility
 
-test_system fun r1 r2 = (afun,a1,a2,res)
- where (afun,a1,a2) = test_alu fun r1 r2
-       res          = test_check_flags fun
+test_system fun src dest flags = (afun,a1,a2,res)
+ where (afun,a1,a2) = test_alu fun src dest
+       res          = test_check_flags fun flags
 
--- TestCode Test    operation     FlagTest
---  0000     eq      r1 - r2        z
---  0001     g       r1 - r2      nc . nz
---  0010     ge      r1 - r2        nc
---  0011     l       r2 - r1      nc . nz
---  0100     le      r2 - r1        nc
---  0101     gi      r1 - r2      (no+p).(o+np).nz
---  0110     gei     r1 - r2      (no+p).(o+np)
---  0111     li      r2 - r1      (no+p).(o+np).nz
---  1000     lei     r2 - r1      (no+p).(o+np)
---  1001     andz    r1 . r2        z
---  1010     nandz   not(r1.r2)     z
---  1011     orz     r1 + r2        z
---  1100     norz    not(r1+r2)     z
---  1101     eq60    r1 - 60        z
---  1110     neq60   r1 - 60        nz
---
+-- TestCode   Test    operation          FlagTest
+--    00       eq      xor(src, dest)      z
+--    01       neq     dest - src          nz
+--    02       g       src - dest         c . nz
+--    03       ge      src - dest          c
+--    04       l       dest - src         c . nz
+--    05       le      dest - src          c
+--    06       gi      dest - src        nz.(o == p)
+--    07       gei     dest - src         o == p
+--    08       li      src - dest        nz.(o == p)
+--    09       lei     src - dest         o == p
+--    10       andz    src . dest          z
+--    11       nandz   nand(src,dest)      z
+--    12       xorz    xor(src, dest)      z
+--    13       nxorz   xor(src, not(dest)) z
+--    14       eq60    xor(src, 60)        z
+--    15       neq60   src - 60            nz
 
-test_alu fun r1 r2 = runVM (make_gen "test_system_alu") $ do
-    c60 <- constV 16 60
+test_alu fun src dest = runVM (make_gen "test_system_alu") $ do
+    alu_diff <- constV  4 10
+    alu_xor  <- constV  4 14
+    alu_nand <- constV  4 15
+    alu_and  <- constV  4 12
+    c60      <- constV 16 60
+    ndest    <- notv dest
 
-    l   <- select4_bit 3 fun
-    le  <- select4_bit 4 fun
-    li  <- select4_bit 7 fun
-    lei <- select4_bit 8 fun
+    cd <- long_select4 fun [
+          ( 0, alu_xor)
+        , ( 1, alu_diff)
+        , ( 2, alu_diff)
+        , ( 3, alu_diff)
+        , ( 4, alu_diff)
+        , ( 5, alu_diff)
+        , ( 6, alu_diff)
+        , ( 7, alu_diff)
+        , ( 8, alu_diff)
+        , ( 9, alu_diff)
+        , (10, alu_and)
+        , (11, alu_nand)
+        , (12, alu_xor)
+        , (13, alu_xor)
+        , (14, alu_xor)
+        , (15, alu_diff)
+        ]
 
-    b1'  <- l   |: le
-    b1'' <- li  |: lei
-    b1   <- b1' |: b1''
-    a1   <- b1 <: (r2,r1)
+    op1 <- long_select4 fun [
+          ( 0, src)
+        , ( 1, src)
+        , ( 2, dest)
+        , ( 3, dest)
+        , ( 4, src)
+        , ( 5, src)
+        , ( 6, src)
+        , ( 7, src)
+        , ( 8, dest)
+        , ( 9, dest)
+        , (10, src)
+        , (11, src)
+        , (12, src)
+        , (13, src)
+        , (14, c60)
+        , (15, c60)
+        ]
 
-    eq60  <- select4_bit 13 fun
-    neq60 <- select4_bit 14 fun
-    b2    <- eq60 |: neq60
-    a2'   <- b2 <: (c60,r2)
-    a2    <- b1 <: (r1,a2')
 
-    alu_sub  <- constV 4  6
-    alu_or   <- constV 4 10
-    alu_and  <- constV 4  8
-    alu_nand <- constV 4 11
-    alu_xor  <- constV 4  9
+    op2 <- long_select4 fun [
+          ( 0, dest)
+        , ( 1, dest)
+        , ( 2, src)
+        , ( 3, src)
+        , ( 4, dest)
+        , ( 5, dest)
+        , ( 6, dest)
+        , ( 7, dest)
+        , ( 8, src)
+        , ( 9, src)
+        , (10, dest)
+        , (11, dest)
+        , (12, dest)
+        , (13, ndest)
+        , (14, src)
+        , (15, src)
+        ]
 
-    andz  <- select4_bit  9 fun
-    nandz <- select4_bit 10 fun
-    orz   <- select4_bit 11 fun
-    xorz  <- select4_bit 12 fun
+    return (cd, op1, op2)
 
-    cd1 <- andz  <: (alu_and,  alu_sub)
-    cd2 <- nandz <: (alu_nand, cd1)
-    cd3 <- orz   <: (alu_or,   cd2)
-    cd  <- xorz  <: (alu_xor,  cd3)
+test_check_flags fun (z,c,p,o,s) = runVM (make_gen "test_system_cflags") $ do
+    nz        <- notv z
+    cz        <- c &: nz
+    o_ne_p    <- o ^: p
+    o_eq_p    <- notv o_ne_p
+    nz_o_eq_p <- nz &: o_eq_p
 
-    return (cd, a1, a2)
-
--- fun : x3x2\x1x0
---        00   01   11   10
---    00  z    ncz  ncz  nc
---    01  nc   sds  sds  sd
---    11  z    z    -    nz
---    10  sd   z    z    z
-
-test_check_flags fun = runVM (make_gen "test_system_cflags") $ do
-    let (z,p,c,o) = (get_flag "z", get_flag "p", get_flag "c", get_flag "o")
-    nz    <- notv z
-    np    <- notv p
-    no    <- notv o
-    nc    <- notv c
-    ncz   <- nc &: nz
-    no_p  <- no |: p
-    o_np  <- o |: np
-    sd    <- no_p &: o_np
-    sds   <- sd &: nz
-          
-    x0    <- fun @: 0
-    x1    <- fun @: 1
-    x2    <- fun @: 2
-    x3    <- fun @: 3
-    nx0   <- notv x0
-    nx1   <- notv x1
-    nx2   <- notv x2
-    nx3   <- notv x3
-          
-    tnz   <- select4_bit 14 fun
-          
-    tsd1  <- select4_bit 6 fun
-    tsd2  <- select4_bit 8 fun
-    tsd   <- tsd1 |: tsd2
-
-    tnc1  <- select4_bit 2 fun
-    tnc2  <- select4_bit 4 fun
-    tnc   <- tnc1 |: tnc2
-
-    tsds' <- select2_bit 1 x3 x2
-    tsds  <- x1 &: tsds'
-
-    tncz' <- select2_bit 0 x3 x2
-    tncz  <- x1 &: tncz'
-
-    r1    <- tnz  <: (nz,  z)
-    r2    <- tsd  <: (sd,  r1)
-    r3    <- tnc  <: (nc,  r2)
-    r4    <- tsds <: (sds, r3)
-    r5    <- tncz <: (ncz, r4)
-    return r5
+    long_select4 fun [
+          ( 0, z)
+        , ( 1, nz)
+        , ( 2, cz)
+        , ( 3, c)
+        , ( 4, cz)
+        , ( 5, c)
+        , ( 6, nz_o_eq_p)
+        , ( 7, o_eq_p)
+        , ( 8, nz_o_eq_p)
+        , ( 9, o_eq_p)
+        , (10, z)
+        , (11, z)
+        , (12, z)
+        , (13, z)
+        , (14, z)
+        , (15, nz)
+        ]
 

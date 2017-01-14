@@ -26,7 +26,7 @@ computer = (dps ++ flag_temp, [], [])
        flag_temp =
            flag_system flag_en flags
        ( test_fun, test_src, test_dst, test_result) =
-           test_system test_fun src dest
+           test_system test_fun src dest flags
        ( alu_res, alu_wen, flags, flag_en) =
            alu alu_bin fun src dest
        ( alu_bin, fun, src, dest
@@ -124,5 +124,14 @@ memory_system_flag_test = (regs, [nap], ["sp_temp"])
        addr  = inputV "addr" 16
        (_,nap,spwe,spw,_) = memory_system fun en dt addr
 
+test_system_test = (dflags,[res,afun,a1,a2],[])
+ where (afun, a1, a2, res) = test_system fun r1 r2 flags
+       dflags = flag_system en flags
+       fun = inputV "func"  4
+       r1  = inputV "r1"   16
+       r2  = inputV "r2"   16
+       bin = vconstV "bin"  1 1
+       (_, _, flags, en) = alu bin afun a1 a2
+
 main :: IO ()
-main = putNetlist memory_system_flag_test
+main = putNetlist test_system_test
