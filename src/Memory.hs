@@ -15,36 +15,45 @@ memory_system fun en dt addr = runVM (make_gen "memory_system") $ do
     c2    <- constV 16 2
     cf1_8 <- constV 8 0xff
     c0_8  <- constV 8 0
+    c0_1  <- constV 1 0
     cmp2  <- constV 16 65534 -- 2 complement
     is_r  <- select2_bit 0 fun3 fun2
     is_w  <- select2_bit 1 fun3 fun2
     is_c  <- select2_bit 2 fun3 fun2
 
+    -- Handle sp
+    ret  <- select4_bit 10 fun
+    pop  <- select4_bit  9 fun
+    push <- select4_bit  8 fun
+    ince <- pop |: ret
+    esp  <- en &: is_c
+
+    ad      <- ince <: (c2,cmp2)
+    (wsp,_) <- full_adder 16 sp ad
+
     -- Are we performing a read operation ?
-    reading'  <- select2_bit 1 fun1 fun0
-    reading'' <- is_c &: reading'
-    reading   <- is_r |: reading''
+    reading <- is_r |: pop
 
     -- Should we write the lower byte ?
-    wl'   <- select2_bit 0 fun1 fun0
+    wl'   <- is_w |: push
     wl    <- en &: wl'
     -- Should we write the upper byte ?
-    wc    <- is_c &: wl
-    wh'   <- notv fun1
+    wh'   <- select2_bit 0 fun1 fun0
     wh''  <- is_w &: wh'
-    wh''' <- wc |: wh''
+    wh''' <- push |: wh''
     wh    <- en &: wh'''
 
     -- The used addresses for the two byte read
-    used_addr1     <- is_c <: (sp,addr)
+    used_addr1'    <- ince <: (wsp,sp)
+    used_addr1     <- is_c <: (used_addr1',addr)
     (used_addr2,_) <- full_adder 16 used_addr1 c1
 
-    used_dt <- is_c <: (sp,dt)
+    used_dt <- return dt
     datal' <- used_dt !!: (0,7)
     datah  <- used_dt !!: (8,15)
 
     sel'  <- select2_bit 2 fun1 fun0
-    sel   <- fun2 &: sel'
+    sel   <- is_w &: sel'
     datal <- sel <: (datah,datal')
 
     rdl   <- ram 16 8 used_addr1 wl used_addr1 datal
@@ -54,20 +63,11 @@ memory_system fun en dt addr = runVM (make_gen "memory_system") $ do
     rdbi <- select4_bit 2 fun
     rdb  <- rdbu |: rdbi
 
-    seli' <- rdl @: 7
-    seli  <- seli' &: rdbi
-    rdh'' <- seli <: (cf1_8,c0_8)
-    rdh   <- rdb <: (rdh'',rdh')
-    read_nap <- rdl -: rdh
-
-    ret  <- select4_bit 10 fun
-    pop  <- select4_bit  9 fun
-    push <- select4_bit  8 fun
-    ince <- pop |: ret
-    esp  <- push |: ince
-
-    ad      <- ince <: (c2,cmp2)
-    (wsp,_) <- full_adder 16 sp ad
+    seli'    <- rdl @: 7
+    seli     <- seli' &: rdbi
+    rdh''    <- seli <: (cf1_8,c0_8)
+    rdh      <- rdb <: (rdh'',rdh')
+    read_nap <- rdh -: rdl
 
     return (reading,read_nap,esp,wsp,ret)
 

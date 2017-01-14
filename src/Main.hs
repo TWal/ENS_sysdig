@@ -42,52 +42,6 @@ computer = (dps ++ flag_temp, [], [])
        alu_whi  = vconstV "alu_whi" 16 0
        alu_wlo  = vconstV "alu_wlo" 16 0
 
-netlist'' :: Netlist
-netlist'' = (dps, [rd,rdt,get_register "sp"], [])
- where rcmd = ("rcmd", 4, Econst 0)
-       wcmd = ("wcmd", 4, Econst 0)
-       wval = ("wval", 16, Econst 0)
-       we   = ("we",   1,  Econst 0)
-       low  = ("low",  16, Econst 0)
-       lowe = ("lowe", 1,  Econst 0)
-       hiw  = ("hiw",  16, Econst 0)
-       hiwe = ("hiwe", 1,  Econst 0)
-       (_,_,dps) = register_manager rcmd wcmd wval we
-                                    low lowe hiw hiwe spw spwe
-       (rd,rdt,spwe,spw,_) = memory_system we fun dt addr
-       fun  = ("fun", 4, Einput)
-       dt   = ("data", 16, Einput)
-       addr = ("addr", 16, Einput)
-
--- Shows how to do recursive definition
-netlist :: Netlist
-netlist = (dps, [rr,rw], [])
- where rcmd = ("rcmd", 4,  Einput)
-       wcmd = ("wcmd", 4,  Einput)
-       wval = ("wval", 16, Einput)
-       we   = ("we",   1,  Einput)
-       low  = ("low",  16, Econst 0)
-       lowe = ("lowe", 1,  Econst 0)
-       hiw  = ("hiw",  16, Econst 0)
-       hiwe = ("hiwe", 1,  Econst 0)
-       spw  = ("spw",  16, Econst 0)
-       spwe = ("spwe", 1,  Econst 0)
-       real_write = ("real_write", 16, Eor wval rw)
-       (rr,rw,dps) = register_manager rcmd wcmd real_write we
-                                      low lowe hiw hiwe spw spwe
-netlist' :: Netlist
-netlist' = (dps, [out], [])
- where dps  = flag_system en (wz,wc,wp,wo,ws)
-       en   = ("en", 1, Einput)
-       win  = ("win", 5, Einput)
-       code = ("code", 4, Einput)
-       wz   = ("wz", 1, Eselect 0 win)
-       wc   = ("wc", 1, Eselect 1 win)
-       wp   = ("wp", 1, Eselect 2 win)
-       wo   = ("wo", 1, Eselect 3 win)
-       ws   = ("ws", 1, Eselect 4 win)
-       out  = flag_code code
-
 aluNetlist :: Netlist
 aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
                         renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],
@@ -105,8 +59,8 @@ aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,rename
 select4_bit_test :: Netlist
 select4_bit_test = ([],[out1,out2],[])
  where inpt = inputV "input" 4
-       out1  = runVM (make_gen "out1") $ select4_bit 3 inpt
-       out2  = runVM (make_gen "out2") $ select4_bit 7 inpt
+       out1 = runVM (make_gen "out1") $ select4_bit 3 inpt
+       out2 = runVM (make_gen "out2") $ select4_bit 7 inpt
 
 full_adder_test ::Netlist
 full_adder_test = ([],[res,r],[])
@@ -114,5 +68,61 @@ full_adder_test = ([],[res,r],[])
        a2      = inputV "a2" 64
        (res,r) = runVM (make_gen "full_adder") $ full_adder 64 a1 a2
 
+flag_system_test = (flags, [z,c,p,o,s], [])
+ where inz         = inputV "inz"  1
+       inc         = inputV "inc"  1
+       inp         = inputV "inp"  1
+       ino         = inputV "ino"  1
+       ins         = inputV "ins"  1
+       en          = inputV "en" 1
+       flags       = flag_system en (inz, inc, inp, ino, ins)
+       (z,c,p,o,s) = (get_flag "z", get_flag "c", get_flag "p", get_flag "o", get_flag "s")
+
+flag_code_test = (flags, [out], [])
+ where en    = inputV "en" 1
+       win   = inputV "win" 5
+       code  = inputV "code" 4
+       wz    = ("wz", 1, Eselect 0 win)
+       wc    = ("wc", 1, Eselect 1 win)
+       wp    = ("wp", 1, Eselect 2 win)
+       wo    = ("wo", 1, Eselect 3 win)
+       ws    = ("ws", 1, Eselect 4 win)
+       out   = flag_code code
+       flags = flag_system en (wz,wc,wp,wo,ws)
+
+register_manager_test = (regs, [rreg,rwreg], [])
+ where rcmd  = inputV "rcmd"   4
+       wcmd  = inputV "wcmd"   4
+       write = inputV "write" 16
+       we    = inputV "we"     1
+       hiw   = inputV "hiw"   16
+       hiwe  = inputV "hiwe"   1
+       low   = inputV "low"   16
+       lowe  = inputV "lowe"   1
+       spw   = inputV "spw"   16
+       spwe  = inputV "spwe"   1
+       (rreg,rwreg,regs) = register_manager rcmd wcmd write we
+                                            hiw hiwe low lowe spw spwe
+
+memory_system_test = ([("sp_temp", 16, Econst 42)], [reading,nap,spwe,spw,ret], [])
+ where fun  = inputV "fun"   4
+       en   = inputV "en"    1
+       dt   = inputV "dt"   16
+       addr = inputV "addr" 16
+       (reading,nap,spwe,spw,ret) = memory_system fun en dt addr
+
+memory_system_flag_test = (regs, [nap], ["sp_temp"])
+ where rcmd  = vconstV "rcmd"  4 0
+       wcmd  = vconstV "wcmd"  4 0
+       write = vconstV "writ" 16 0
+       we    = vconstV "we"    1  0
+       (_,_,regs) = register_manager rcmd wcmd write we
+                                     write we write we spw spwe
+       fun   = inputV "fun"   4
+       en    = inputV "en"    1
+       dt    = inputV "dt"   16
+       addr  = inputV "addr" 16
+       (_,nap,spwe,spw,_) = memory_system fun en dt addr
+
 main :: IO ()
-main = putNetlist aluNetlist
+main = putNetlist memory_system_flag_test

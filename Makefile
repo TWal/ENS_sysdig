@@ -1,4 +1,4 @@
-.PHONY : all clean mrproper
+.PHONY : all clean mrproper spec
 
 all: NetCompil/bin/netCompil
 	cabal build
@@ -17,5 +17,5 @@ clean:
 mrproper: clean
 	make mrproper -C NetCompil
 
-
-
+spec: Specification/spec.tex
+	make -C Specification
