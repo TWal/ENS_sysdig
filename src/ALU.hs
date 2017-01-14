@@ -4,6 +4,7 @@ import Flags
 import Registers
 import Utility
 import Debug.Trace
+import Data.Int
 
 -- in all ALU c , o ,s , ... designate flags
 alu :: Var -> Var -> Var -> Var -> (Var,Var,(Var,Var,Var,Var,Var),Var)
@@ -21,16 +22,16 @@ alu bin func op1 op2 = runVM (make_gen "alu") $ do
   fen <- notv ismovs
   return (out,wen,flags,fen)
 
-
-simpleUnInt 1 c input = do
-  i <- input @: 0
+simpleUnInt :: Int8 -> Var -> Var -> VarMonad (Var,Var)
+simpleUnInt 1 c inp = do
+  i <- inp @: 0
   out <- c ^: i
   co <- c &: i
   return (co,out)
 
-simpleUnInt n c input = do
-  (ci,oend) <- simpleUnInt (n-1) c input
-  i <-  input @: (n-1)
+simpleUnInt n c inp = do
+  (ci,oend) <- simpleUnInt (n-1) c inp
+  i <-  inp @: (n-1)
   obeg <- ci ^: i
   co <- ci &: i
   out <- obeg -: oend
@@ -62,22 +63,22 @@ simpleUn uncode op1 = runVM (make_gen "simpleUn") $ do
   return (co,o,out)
 
 --------------------SIMPLE BINARY OP--------------------------
-
+simpleBinInt :: Int8 -> Var -> Var -> Var -> VarMonad (Var,Var)
 simpleBinInt 1 c xab andab = do
   xabbit <- xab @: 0
   andabbit <- andab @: 0
-  ario <- c ^: xabbit
-  cc <- c &: andabbit
-  co <- andabbit |: cc
+  ario <- renameVM "ario0" $ c ^: xabbit
+  cc <- c &: xabbit
+  co <- renameVM "co0" $ andabbit |: cc
   return (co,ario)
 
 simpleBinInt n c xab andab = do
   (ci,arioend) <- simpleBinInt (n-1) c xab andab
   xabbit <- xab @: (n-1)
   andabbit <- andab @: (n-1)
-  ario <- ci ^: xabbit
-  cc <- ci &: andabbit
-  co <- andabbit |: ci
+  ario <- renameVM ("ario" ++ (show $ n-1)) $ ci ^: xabbit
+  cc <- ci &: xabbit
+  co <- renameVM ("co" ++  (show $n-1)) $ andabbit |: cc
   out <- ario -: arioend
   return(co,out)
 
@@ -88,11 +89,11 @@ simpleBin bincode a b = runVM (make_gen "simpleBin") $ do
     (binaryToInt8 "1001", binaryToInt "0000101"),--ADDC
     (binaryToInt8 "1010", binaryToInt "0101001"),--SUB
     (binaryToInt8 "1011", binaryToInt "0101101"),--SUBC
-    (binaryToInt8 "1100", binaryToInt "1110010"),--AND
-    (binaryToInt8 "1101", binaryToInt "0000000"),--OR
-    (binaryToInt8 "1110", binaryToInt "0000010"),--XOR
+    (binaryToInt8 "1100", binaryToInt "0000010"),--AND
+    (binaryToInt8 "1101", binaryToInt "1110010"),--OR
+    (binaryToInt8 "1110", binaryToInt "0000000"),--XOR
     (binaryToInt8 "1111", binaryToInt "0010010")]--NAND
-  bits <- long_select4 bincode l
+  bits <- renameVM "binbits" $ long_select4 bincode l
   ax <- bits @:6
   bx <- bits @:5
   ox <- bits @:4
@@ -102,12 +103,13 @@ simpleBin bincode a b = runVM (make_gen "simpleBin") $ do
   ari <- bits @:0
   ra <- a ^-: ax
   rb <- b ^-: bx
-  xab <- ra ^: rb
-  andab <- ra &: rb
+  xab <- renameVM "xab" $ ra ^: rb
+  andab <- renameVM "andab" $ ra &: rb
   fc <- return $ get_flag "c"
   cflag <- cf &: fc
   c <- ci ^: cflag
-  (co,ario) <- simpleBinInt 16 c xab andab
+  (co,ario') <- simpleBinInt 16 c xab andab
+  let ario = renameV "ario" ario'
   logo <- andb <: (andab,xab)
   ro <- ari <: (ario,logo)
   out <- ro ^-: ox
@@ -126,23 +128,24 @@ simpleBin bincode a b = runVM (make_gen "simpleBin") $ do
 
 ----------------------------SHIFTS----------------------------
 shiftlInt :: Int -> Var -> Var -> VarMonad Var
-shiftlInt n doit input = do
-  slice <- input !!: (0,15-2^n)
+shiftlInt n doit inp = do
+  slice <- inp !!: (0,15-2^n)
   zero <- constV (2^n) 0
   tmp <- slice -: zero
-  doit <: (tmp,input)
+  doit <: (tmp,inp)
 
 shiftl :: Var -> Var -> VarMonad Var
-shiftl input val = do
+shiftl inp val = do
   v3 <- val @: 3
   v2 <- val @: 2
   v1 <- val @: 1
   v0 <- val @: 0
-  res3 <- shiftlInt 3 v3 input
+  res3 <- shiftlInt 3 v3 inp
   res2 <- shiftlInt 2 v2 res3
   res1 <- shiftlInt 1 v1 res2
   shiftlInt 0 v0 res1
 
+makeArray :: Int8 -> Var -> VarMonad Var
 makeArray 1 v = do
   return v
 
@@ -150,22 +153,25 @@ makeArray n v = do
   vend <- makeArray (n-1) v
   v -: vend
 
-shiftrInt n doit input fstbit = do
-  slice <- input !!: (2^n,15)
+shiftrInt :: Int8 -> Var -> Var -> Var -> VarMonad Var
+shiftrInt n doit inp fstbit = do
+  slice <- inp !!: (2^n,15)
   arr <- makeArray (2^n) fstbit
   tmp <- arr -: slice
-  doit <: (tmp,input)
+  doit <: (tmp,inp)
 
-shiftr input val fstbit = do
+shiftr :: Var -> Var -> Var -> VarMonad Var
+shiftr inp val fstbit = do
   v3 <- val @: 3
   v2 <- val @: 2
   v1 <- val @: 1
   v0 <- val @: 0
-  res3 <- shiftrInt 3 v3 input fstbit
+  res3 <- shiftrInt 3 v3 inp fstbit
   res2 <- shiftrInt 2 v2 res3 fstbit
   res1 <- shiftrInt 1 v1 res2 fstbit
   shiftlInt 0 v0 res1
 
+simpleShift :: Var -> Var -> Var -> VarMonad Var
 simpleShift bincode a b = do
   highb <- b !!: (4,15)
   ishigh <- nap_or highb
@@ -183,6 +189,7 @@ simpleShift bincode a b = do
 
 ------------------------------FUSION CODE-----------------------------
 
+binGlob :: Var -> Var -> Var -> (Var,Var,Var)
 binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
   binres <- return $ simpleBin code op1 op2
   shiftres <- simpleShift code op1 op2
@@ -199,6 +206,7 @@ binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
   ismov <::: ((zero,zero,op1),binshiftres)
 
 
+unGlob :: Var -> Var -> Var -> (Var,Var,Var)
 unGlob code op1 op2 = runVM (make_gen "unGlob") $ do
   simpleunres <- return $ simpleUn code op1
   shiftres <- simpleShift code op1 op2
@@ -213,6 +221,7 @@ unGlob code op1 op2 = runVM (make_gen "unGlob") $ do
   prout <- constV 16 0
   isnotSimple <:::((zero,zero,prout),simpleres)
 
+setFlags :: Var -> Var -> Var -> (Var,Var,Var,Var,Var)
 setFlags c o out = runVM (make_gen "setFlags") $ do
   nz <- nap_or out
   z <- notv nz

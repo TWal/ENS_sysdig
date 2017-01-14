@@ -14,6 +14,7 @@ import Instructions
 import Test
 -- On Mux assumes 1 -> first choice
 
+computer :: Netlist
 computer = (dps ++ flag_temp, [], [])
  where ( read_reg, write_reg, dps) =
            register_manager rcmd wcmd reg_write_data reg_write_enable
@@ -41,6 +42,7 @@ computer = (dps ++ flag_temp, [], [])
        alu_whi  = vconstV "alu_whi" 16 0
        alu_wlo  = vconstV "alu_wlo" 16 0
 
+netlist'' :: Netlist
 netlist'' = (dps, [rd,rdt,get_register "sp"], [])
  where rcmd = ("rcmd", 4, Econst 0)
        wcmd = ("wcmd", 4, Econst 0)
@@ -58,6 +60,7 @@ netlist'' = (dps, [rd,rdt,get_register "sp"], [])
        addr = ("addr", 16, Einput)
 
 -- Shows how to do recursive definition
+netlist :: Netlist
 netlist = (dps, [rr,rw], [])
  where rcmd = ("rcmd", 4,  Einput)
        wcmd = ("wcmd", 4,  Einput)
@@ -72,7 +75,7 @@ netlist = (dps, [rr,rw], [])
        real_write = ("real_write", 16, Eor wval rw)
        (rr,rw,dps) = register_manager rcmd wcmd real_write we
                                       low lowe hiw hiwe spw spwe
-
+netlist' :: Netlist
 netlist' = (dps, [out], [])
  where dps  = flag_system en (wz,wc,wp,wo,ws)
        en   = ("en", 1, Einput)
@@ -87,7 +90,10 @@ netlist' = (dps, [out], [])
 
 aluNetlist :: Netlist
 aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
-                        renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],[])
+                        renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],
+               ["binbits","xab","andab","ario","ario0","ario1","ario2","ario3","ario4",
+                "co0","co1","co2","co3","co4"
+               ])
   where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
         bin = inputV "bin" 1
         func = inputV "func" 4
@@ -98,16 +104,17 @@ aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,rename
 -------------------------------------------------------------------------------
 ----------------------------- Tests -------------------------------------------
 -------------------------------------------------------------------------------
-
+select4_bit_test :: Netlist
 select4_bit_test = ([],[out1,out2],[])
  where inpt = inputV "input" 4
        out1  = runVM (make_gen "out1") $ select4_bit 3 inpt
        out2  = runVM (make_gen "out2") $ select4_bit 7 inpt
 
-full_adder_test = ([],[sum,r],[])
+full_adder_test ::Netlist
+full_adder_test = ([],[res,r],[])
  where a1      = inputV "a1" 64
        a2      = inputV "a2" 64
-       (sum,r) = runVM (make_gen "full_adder") $ full_adder 64 a1 a2
+       (res,r) = runVM (make_gen "full_adder") $ full_adder 64 a1 a2
 
 main :: IO ()
 main = putNetlist aluNetlist
