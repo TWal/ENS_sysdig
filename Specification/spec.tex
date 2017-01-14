@@ -295,6 +295,61 @@ offset se fait uniquement par la présence d'un entier derrière : \verb!wrl a b
 \paragraph{Valeur Immédiate :} On écrira \verb!limm 42 a! pour charger la valeur
 42 dans \verb!a!.
 
+\section{Mapping RAM}
 
+\paragraph{Zone spéciales :}
+\begin{itemize}
+\item Adresse 0-3 : Code d'Erreur : si cette valeur deviens non nulle, le
+  processeur s'arrète immédiatement et affiche ce code.
+\item Address 4-7 : Carte graphique : ce qui est placé dans cette adresse sera
+  donné à la carte graphique.
+\end{itemize}
+
+\section{Interface avec carte Graphique}
+
+\paragraph{Forme d'instruction :}
+
+\begin{center}
+  \begin{asy}
+    unitsize(0.25cm);
+    void square(string lab,int start,int width,bool end = false)
+    {
+      draw((start,0)--(start +width,0)--(start + width,2)--(start,2)--cycle);
+      label(lab,(start +width/2,0 ),N,basealign);
+      label ("$_{" +(string)start+ "}$",(start,0),S);
+      if(end) label ("$_{" +(string)(start + width)+ "}$",(start + width,0),S);
+    }
+    square("c",0,2); 
+    square("instr",2,6);
+    square("data",8,24,true);
+  \end{asy}
+\end{center}
+
+\paragraph{Protocole :} le code $c$ décrit l'état de la communication :
+\begin{itemize}
+\item Code 0 : Aucune comminication : on peut écrire
+\item Code 1 : CPU entrain d'écrire.
+\item Code 2 : CPU fini d'écrire, message pas encore lu par GPU
+\end{itemize}
+
+\paragraph{Éxecution du protocole :}
+\begin{itemize}
+\item Le CPU attend le code 0.
+\item Le CPU met le code à 1.
+\item Le CPU écrit le contenu.
+\item Le CPU met le code à 2.
+\item Dès qu'il voit un 2, le GPU lit.
+\item Le GPU met le code à 0 à la fin de sa lecture.
+\end{itemize}
+
+\paragraph{Instructions :}
+\begin{itemize}
+\item Code 0 : Passe en mode afficheur 7 -segment (où cas où on en mette un
+  autre).
+\item Code 1 - 7 : écrit la nouvelle valeur de cette unité dans l'afficheur (1 :
+  s, 2 : m, 3 : h , 4 : jour de la semaine , 5 jour du mois , 6 : mois , 7
+  année) la valeur est lue sur les 16-bits de poids fort de data (bit 16 à 31
+  de l'instruction).
+\end{itemize}
 
 \end{document}
