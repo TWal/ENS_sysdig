@@ -1,6 +1,11 @@
-main
+
 *.o
 *.hi
 *.net
+dist
 Specification/**
 !*.tex
+proco
+proco.cpp
+proco.net
+asm/asm
