@@ -42,23 +42,6 @@ computer = (dps ++ flag_temp, [], [])
        alu_whi  = vconstV "alu_whi" 16 0
        alu_wlo  = vconstV "alu_wlo" 16 0
 
-netlist'' :: Netlist
-netlist'' = (dps, [rd,rdt,get_register "sp"], [])
- where rcmd = ("rcmd", 4, Econst 0)
-       wcmd = ("wcmd", 4, Econst 0)
-       wval = ("wval", 16, Econst 0)
-       we   = ("we",   1,  Econst 0)
-       low  = ("low",  16, Econst 0)
-       lowe = ("lowe", 1,  Econst 0)
-       hiw  = ("hiw",  16, Econst 0)
-       hiwe = ("hiwe", 1,  Econst 0)
-       (_,_,dps) = register_manager rcmd wcmd wval we
-                                    low lowe hiw hiwe spw spwe
-       (rd,rdt,spwe,spw,_) = memory_system we fun dt addr
-       fun  = ("fun", 4, Einput)
-       dt   = ("data", 16, Einput)
-       addr = ("addr", 16, Einput)
-
 aluNetlist :: Netlist
 aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
                         renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],
@@ -121,5 +104,25 @@ register_manager_test = (regs, [rreg,rwreg], [])
        (rreg,rwreg,regs) = register_manager rcmd wcmd write we
                                             hiw hiwe low lowe spw spwe
 
+memory_system_test = ([("sp_temp", 16, Econst 42)], [reading,nap,spwe,spw,ret], [])
+ where fun  = inputV "fun"   4
+       en   = inputV "en"    1
+       dt   = inputV "dt"   16
+       addr = inputV "addr" 16
+       (reading,nap,spwe,spw,ret) = memory_system fun en dt addr
+
+memory_system_flag_test = (regs, [nap], ["sp_temp"])
+ where rcmd  = vconstV "rcmd"  4 0
+       wcmd  = vconstV "wcmd"  4 0
+       write = vconstV "writ" 16 0
+       we    = vconstV "we"    1  0
+       (_,_,regs) = register_manager rcmd wcmd write we
+                                     write we write we spw spwe
+       fun   = inputV "fun"   4
+       en    = inputV "en"    1
+       dt    = inputV "dt"   16
+       addr  = inputV "addr" 16
+       (_,nap,spwe,spw,_) = memory_system fun en dt addr
+
 main :: IO ()
-main = putNetlist register_manager_test
+main = putNetlist memory_system_flag_test
