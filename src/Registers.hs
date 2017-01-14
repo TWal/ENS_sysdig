@@ -16,9 +16,9 @@ import Data.Bits
 --
 -- For circular dependencies the DSL is not enough, the variable must be
 -- manually created
-make_register w we name = (rr,rt)
- where rt = (name ++ "_temp",16,Emux we w rr)
-       rr = (name,16,Ereg $ name ++ "_temp")
+make_register w we = (rr,rt)
+ where rt = (16,Emux we w rr)
+       rr = (16,Ereg rt)
 
 -- The register manager. Returns readrreg, readwreg, and the direct access
 -- registers.
@@ -28,12 +28,10 @@ make_register w we name = (rr,rt)
 -- direct access one is selected.
 register_manager readcmd writecmd writewreg we
                  hiw hiwe low lowe spw spwe
- = runVM (make_gen "register_manager") $ do 
-     rs <- mapM make_r reg
-     let rs' = map fst rs
-     readrreg <- dicho_select readcmd  rs' 0 3
-     readwreg <- dicho_select writecmd rs' 0 3
-     return (readrreg, readwreg, map snd rs)
+ = let rs = map make_r reg in let rs' = map fst rs in
+   let readrreg = dicho_select readcmd  rs' 0 3 in
+   let readwreg = dicho_select writecmd rs' 0 3 in
+   (readrreg, readwreg, rs', map snd rs)
  where reg = [( 0, Nothing,  Nothing,   "ret"),
               ( 1, Just hiw, Just hiwe, "hi"),
               ( 2, Just low, Just lowe, "lo"),
@@ -50,31 +48,28 @@ register_manager readcmd writecmd writewreg we
               (13, Nothing,  Nothing,   "r4"),
               (14, Nothing,  Nothing,   "r5"),
               (15, Nothing,  Nothing,   "r6")]
-       make_we (i, mwe) = do
-           s1 <- select4_bit i writecmd
-           s2 <- we &: s1
+       make_we (i, mwe) =
+           let s1 = select4_bit i writecmd in
+           let s2 = we &: s1 in
            case mwe of
                (Just we') -> we' |: s2
-               Nothing    -> return s2
+               Nothing    -> s2
        make_w (i, Just w,  Just we') = we' <: (w, writewreg)
-       make_w (i, Nothing, Nothing)  = return writewreg
-       make_r (i,mw,mwe,nm) = do
-           w  <- make_w (i,mw,mwe)
-           we <- make_we (i,mwe)
-           return $ make_register w we nm
+       make_w (i, Nothing, Nothing)  = writewreg
+       make_r (i,mw,mwe,nm) =
+           let w  = make_w (i,mw,mwe) in
+           let we = make_we (i,mwe) in
+           make_register w we
        mshift :: Int -> Int8 -> Int
        mshift x i = shiftL x $ fromIntegral i
-       dicho_select :: Var -> [Var] -> Int -> Int8 -> VarMonad Var
+       dicho_select :: Var -> [Var] -> Int -> Int8 -> Var
        dicho_select s l x i =
-           if i == 0 then do
-               sl <- s @: 0
+           if i == 0 then
+               let sl = s @: 0 in
                sl <: (l!!(x+1),l!!x)
-           else do
-               n1 <- dicho_select s l x $ i - 1
-               n2 <- dicho_select s l (x + 1 `mshift` i) $ i - 1
-               sl <- s @: i
+           else
+               let n1 = dicho_select s l x $ i - 1 in
+               let n2 = dicho_select s l (x + 1 `mshift` i) $ i - 1 in
+               let sl = s @: i in
                sl <: (n2,n1)
-
-get_register :: String -> Var
-get_register n = (n,16,Ereg $ n ++ "_temp")
 
