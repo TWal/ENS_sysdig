@@ -7,12 +7,12 @@ import Debug.Trace
 import Data.Int
 
 -- in all ALU c , o ,s , ... designate flags
-alu :: Var -> Var -> Var -> Var -> (Var,Var,(Var,Var,Var,Var,Var),Var)
+alu :: Var -> Var -> Var -> Var -> VarMonad (Var,Var,(Var,Var,Var,Var,Var),Var)
 alu bin func op1 op2 = runVM (make_gen "alu") $ do
-  binres <- return $ binGlob func op1 op2
-  unres <- return $ unGlob func op1 op2
+  binres <- binGlob func op1 op2
+  unres <- unGlob func op1 op2
   (c,o,out) <- bin <::: (binres,unres)
-  flags <- return $ setFlags c o out
+  flags <- setFlags c o out
   func3 <- func @: 3
   nfunc3 <- notv func3
   wen <- nfunc3 |: bin
@@ -37,7 +37,7 @@ simpleUnInt n c inp = do
   out <- obeg -: oend
   return (co,out)
 
-simpleUn :: Var -> Var -> (Var,Var,Var)
+simpleUn :: Var -> Var -> VarMonad (Var,Var,Var)
 simpleUn uncode op1 = runVM (make_gen "simpleUn") $ do
   l <- mapM (\(i,c) -> constV 4 c >>= \v -> return (i,v)) [
     (binaryToInt8 "00", binaryToInt "0010"),--NOT
@@ -82,7 +82,7 @@ simpleBinInt n c xab andab = do
   out <- ario -: arioend
   return(co,out)
 
-simpleBin :: Var -> Var -> Var -> (Var,Var,Var)
+simpleBin :: Var -> Var -> Var -> VarMonad (Var,Var,Var)
 simpleBin bincode a b = runVM (make_gen "simpleBin") $ do
   l <- mapM (\(i,c) -> constV 7 c >>= \v -> return (i,v)) [
     (binaryToInt8 "1000", binaryToInt "0000001"),--ADD
@@ -188,9 +188,9 @@ simpleShift bincode a b = do
 
 ------------------------------FUSION CODE-----------------------------
 
-binGlob :: Var -> Var -> Var -> (Var,Var,Var)
+binGlob :: Var -> Var -> Var -> VarMonad (Var,Var,Var)
 binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
-  binres <- return $ simpleBin code op1 op2
+  binres <- simpleBin code op1 op2
   shiftres <- simpleShift code op1 op2
   code1 <- code @: 1
   code2 <- code @: 2
@@ -205,9 +205,9 @@ binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
   ismov <::: ((zero,zero,op1),binshiftres)
 
 
-unGlob :: Var -> Var -> Var -> (Var,Var,Var)
+unGlob :: Var -> Var -> Var -> VarMonad (Var,Var,Var)
 unGlob code op1 op2 = runVM (make_gen "unGlob") $ do
-  simpleunres <- return $ simpleUn code op1
+  simpleunres <- simpleUn code op1
   shiftres <- simpleShift code op1 op2
   code1 <- code @: 1
   code2 <- code @: 2
@@ -220,7 +220,7 @@ unGlob code op1 op2 = runVM (make_gen "unGlob") $ do
   prout <- constV 16 0
   isnotSimple <:::((zero,zero,prout),simpleres)
 
-setFlags :: Var -> Var -> Var -> (Var,Var,Var,Var,Var)
+setFlags :: Var -> Var -> Var -> VarMonad (Var,Var,Var,Var,Var)
 setFlags c o out = runVM (make_gen "setFlags") $ do
   nz <- nap_or out
   z <- notv nz

@@ -19,7 +19,7 @@ instruction_reader ins = do
 pp_register w = constV 1 1 >>= \we -> return $ make_register w we "pp"
 get_pp_register = return $ get_register "pp"
 
-instruction_system_fix :: (Var, Var, Var, Var, Var, Var, Var, Var, Var, Var,
+instruction_system_fix :: VarMonad (Var, Var, Var, Var, Var, Var, Var, Var, Var, Var,
                            Var, Var, Var, Var, Var, Var, (Var,Var,Var,Var,Var),
                            [Var], [Var])
 instruction_system_fix = runVM (make_gen "instruction_system") $ mfix instruction_system'
@@ -34,18 +34,18 @@ instruction_system' (is_bin_r, real_func_r, real_src_r, real_dest_r,
                      wsp_r, esp_r, mem_enable_r, addr_r,
                      read_cmd_r, write_cmd_r, reg_data_r, reg_we_r,
                      flags_r, dps_r, flag_temp_r) = do
-    let (read_reg, write_reg, dps) =
+    (read_reg, write_reg, dps) <-
            register_manager read_cmd_r write_cmd_r reg_data_r reg_we_r
                             write_hi_r enable_hi_r write_lo_r enable_lo_r wsp_r esp_r
-    let (mem_reading, mem_nap, mem_esp, mem_wsp, mem_ret) =
+    (mem_reading, mem_nap, mem_esp, mem_wsp, mem_ret) <-
            memory_system real_func_r mem_enable_r real_src_r addr_r
-    let flag_code_out =
+    flag_code_out <-
            flag_code real_func_r
-    let (test_func, test_src, test_dest, test_out) =
+    (test_func, test_src, test_dest, test_out) <-
            test_system real_func_r real_src_r real_dest_r flags_r
-    let (alu_res, alu_wen, flags, flag_en) =
+    (alu_res, alu_wen, flags, flag_en) <-
            alu is_bin_r real_func_r real_src_r real_dest_r
-    let flag_temp =
+    flag_temp <-
            flag_system flag_en flags_r
     alu_hiwe <- constV  1 0
     alu_lowe <- constV  1 0

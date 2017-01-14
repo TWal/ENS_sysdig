@@ -23,7 +23,8 @@ flag_code func = runVM (make_gen "flag_code") $ do
 -------------------------------------------------------------------------------
 ---------------------------- Flag system --------------------------------------
 -------------------------------------------------------------------------------
-flag_system en (z,c,p,o,s) = map (\(n,w) -> make_flag n w en)
+flag_system :: Var -> (Var,Var,Var,Var,Var) -> VarMonad [Var]
+flag_system en (z,c,p,o,s) = return $ map (\(n,w) -> make_flag n w en)
     [ ("flag_z", z)
     , ("flag_c", c)
     , ("flag_p", p)

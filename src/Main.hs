@@ -4,6 +4,7 @@ import NetList
 import Data.Either
 import Data.Int
 import Control.Monad
+import Control.Monad.Fix
 
 import Utility
 import Registers
@@ -13,9 +14,6 @@ import ALU
 import Instructions
 import Test
 -- On Mux assumes 1 -> first choice
-
-computer = (dps ++ flag_temp, [], [])
- where (_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,dps,flag_temp) = instruction_system_fix
 
 -- computer :: Netlist
 -- computer = (dps ++ flag_temp, [], [])
@@ -40,101 +38,110 @@ computer = (dps ++ flag_temp, [], [])
 --                               alu_res alu_whi alu_wehi alu_wlo alu_welo
 --                               mem_reading mem_data mem_wesp mem_wsp mem_ret
 --                               flag_cd
---        alu_wehi = vconstV "alu_wehi" 1 0
---        alu_welo = vconstV "alu_welo" 1 0
---        alu_whi  = vconstV "alu_whi" 16 0
---        alu_wlo  = vconstV "alu_wlo" 16 0
+--        alu_wehi = constV 1 0
+--        alu_welo = constV 1 0
+--        alu_whi  = constV 16 0
+--        alu_wlo  = constV 16 0
 
 aluNetlist :: Netlist
-aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
+aluNetlist = do
+    bin  <- inputV "bin" 1
+    func <- inputV "func" 4
+    op1  <- inputV "op1" 16
+    op2  <- inputV "op2" 16
+    (out,wen,(z,c,p,o,s),fen) <- alu bin func op1 op2
+    flagstmp <- flag_system fen (z,c,p,o,s)
+    return $ (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
                         renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],
                [])
-  where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
-        bin = inputV "bin" 1
-        func = inputV "func" 4
-        op1 = inputV "op1" 16
-        op2 = inputV "op2" 16
-        flagstmp = flag_system fen (z,c,p,o,s)
 
 -------------------------------------------------------------------------------
 ----------------------------- Tests -------------------------------------------
 -------------------------------------------------------------------------------
 select4_bit_test :: Netlist
-select4_bit_test = ([],[out1,out2],[])
- where inpt = inputV "input" 4
-       out1 = runVM (make_gen "out1") $ select4_bit 3 inpt
-       out2 = runVM (make_gen "out2") $ select4_bit 7 inpt
+select4_bit_test = do
+    inpt <- inputV "input" 4
+    out1 <- select4_bit 3 inpt
+    out2 <- select4_bit 7 inpt
+    return ([],[out1,out2],[])
 
 full_adder_test ::Netlist
-full_adder_test = ([],[res,r],[])
- where a1      = inputV "a1" 64
-       a2      = inputV "a2" 64
-       (res,r) = runVM (make_gen "full_adder") $ full_adder 64 a1 a2
+full_adder_test = do
+    a1      <- inputV "a1" 64
+    a2      <- inputV "a2" 64
+    (res,r) <- runVM (make_gen "full_adder") $ full_adder 64 a1 a2
+    return  ([],[res,r],[])
 
-flag_system_test = (flags, [z,c,p,o,s], [])
- where inz         = inputV "inz"  1
-       inc         = inputV "inc"  1
-       inp         = inputV "inp"  1
-       ino         = inputV "ino"  1
-       ins         = inputV "ins"  1
-       en          = inputV "en" 1
-       flags       = flag_system en (inz, inc, inp, ino, ins)
-       (z,c,p,o,s) = (get_flag "z", get_flag "c", get_flag "p", get_flag "o", get_flag "s")
+flag_system_test = do
+    inz   <- inputV "inz"  1
+    inc   <- inputV "inc"  1
+    inp   <- inputV "inp"  1
+    ino   <- inputV "ino"  1
+    ins   <- inputV "ins"  1
+    en    <- inputV "en"   1
+    flags <- flag_system en (inz, inc, inp, ino, ins)
+    let (z,c,p,o,s) = (get_flag "z", get_flag "c", get_flag "p", get_flag "o", get_flag "s")
+    return (flags, [z,c,p,o,s], [])
 
-flag_code_test = (flags, [out], [])
- where en    = inputV "en" 1
-       win   = inputV "win" 5
-       code  = inputV "code" 4
-       wz    = ("wz", 1, Eselect 0 win)
-       wc    = ("wc", 1, Eselect 1 win)
-       wp    = ("wp", 1, Eselect 2 win)
-       wo    = ("wo", 1, Eselect 3 win)
-       ws    = ("ws", 1, Eselect 4 win)
-       out   = flag_code code
-       flags = flag_system en (wz,wc,wp,wo,ws)
+flag_code_test = do
+    en    <- inputV "en" 1
+    win   <- inputV "win" 5
+    code  <- inputV "code" 4
+    wz    <- win @: 0
+    wc    <- win @: 1
+    wp    <- win @: 2
+    wo    <- win @: 3
+    ws    <- win @: 4
+    out   <- flag_code code
+    flags <- flag_system en (wz,wc,wp,wo,ws)
+    return (flags, [out], [])
 
-register_manager_test = (regs, [rreg,rwreg], [])
- where rcmd  = inputV "rcmd"   4
-       wcmd  = inputV "wcmd"   4
-       write = inputV "write" 16
-       we    = inputV "we"     1
-       hiw   = inputV "hiw"   16
-       hiwe  = inputV "hiwe"   1
-       low   = inputV "low"   16
-       lowe  = inputV "lowe"   1
-       spw   = inputV "spw"   16
-       spwe  = inputV "spwe"   1
-       (rreg,rwreg,regs) = register_manager rcmd wcmd write we
-                                            hiw hiwe low lowe spw spwe
+register_manager_test = do
+    rcmd  <- inputV "rcmd"   4
+    wcmd  <- inputV "wcmd"   4
+    write <- inputV "write" 16
+    we    <- inputV "we"     1
+    hiw   <- inputV "hiw"   16
+    hiwe  <- inputV "hiwe"   1
+    low   <- inputV "low"   16
+    lowe  <- inputV "lowe"   1
+    spw   <- inputV "spw"   16
+    spwe  <- inputV "spwe"   1
+    (rreg,rwreg,regs) <- register_manager rcmd wcmd write we
+                                          hiw hiwe low lowe spw spwe
+    return (regs, [rreg,rwreg], [])
 
-memory_system_test = ([("sp_temp", 16, Econst 42)], [reading,nap,spwe,spw,ret], [])
- where fun  = inputV "fun"   4
-       en   = inputV "en"    1
-       dt   = inputV "dt"   16
-       addr = inputV "addr" 16
-       (reading,nap,spwe,spw,ret) = memory_system fun en dt addr
+memory_system_test = do
+    fun  <- inputV "fun"   4
+    en   <- inputV "en"    1
+    dt   <- inputV "dt"   16
+    addr <- inputV "addr" 16
+    (reading,nap,spwe,spw,ret) <- memory_system fun en dt addr
+    return ([("sp_temp", 16, Econst 42)], [reading,nap,spwe,spw,ret], [])
 
-memory_system_flag_test = (regs, [nap], ["sp_temp"])
- where rcmd  = vconstV "rcmd"  4 0
-       wcmd  = vconstV "wcmd"  4 0
-       write = vconstV "writ" 16 0
-       we    = vconstV "we"    1  0
-       (_,_,regs) = register_manager rcmd wcmd write we
-                                     write we write we spw spwe
-       fun   = inputV "fun"   4
-       en    = inputV "en"    1
-       dt    = inputV "dt"   16
-       addr  = inputV "addr" 16
-       (_,nap,spwe,spw,_) = memory_system fun en dt addr
+memory_system_flag_test = do
+    rcmd  <- constV  4 0
+    wcmd  <- constV  4 0
+    write <- constV 16 0
+    we    <- constV    1  0
+    fun   <- inputV "fun"   4
+    en    <- inputV "en"    1
+    dt    <- inputV "dt"   16
+    addr  <- inputV "addr" 16
+    (_,nap,spwe,spw,_) <- memory_system fun en dt addr
+    (_,_,regs) <- register_manager rcmd wcmd write we
+                                   write we write we spw spwe
+    return (regs, [nap], ["sp_temp"])
 
-test_system_test = (dflags,[res,afun,a1,a2],[])
- where (afun, a1, a2, res) = test_system fun r1 r2 flags
-       dflags = flag_system en flags
-       fun = inputV "func"  4
-       r1  = inputV "r1"   16
-       r2  = inputV "r2"   16
-       bin = vconstV "bin"  1 1
-       (_, _, flags, en) = alu bin afun a1 a2
+test_system_test = (liftM fst) $ mfix $ \(_, flags_r) -> do
+    fun <- inputV "func"  4
+    r1  <- inputV "r1"   16
+    r2  <- inputV "r2"   16
+    bin <- constV  1 1
+    (afun, a1, a2, res) <- test_system fun r1 r2 flags_r
+    (_, _, flags, en)   <- alu bin afun a1 a2
+    dflags              <- flag_system en flags
+    return ((dflags, [res,afun,a1,a2], []), flags)
 
 main :: IO ()
-main = putNetlist computer
+main = putNetlist test_system_test

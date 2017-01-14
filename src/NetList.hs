@@ -2,7 +2,7 @@
 module NetList where
 import Data.Int
 import Data.List
-import qualified Control.Monad.Trans.State.Strict as S
+import qualified Control.Monad.Trans.State.Lazy as S
 import qualified Control.Monad as M
 
 -- A variable is a size and a computing tree
@@ -31,22 +31,20 @@ data TVar =
 make_gen :: String -> [String]
 make_gen p = map (\c -> "__" ++ p ++ "_" ++ show c) [1..]
 
-type VarMonad = S.StateT [String] (Either String)
+type VarMonad = S.StateT ([(EqVar,Var)],[String]) (Either String)
 nlabel :: VarMonad String
 nlabel = do
-    c <- S.get
-    S.put $ tail c
-    return $ head c
+    (m,l) <- S.get
+    S.put (m,tail l)
+    return $ head l
 
 size :: Var -> Int8
 size (_,s,_) = s
 label :: Var -> String
 label (l,_,_) = l
 
-test_var_eq :: Int -> Var -> Var -> Bool
-test_var_eq 0 _ _ = False
-test_var_eq n (l1,s1,tv1) (l2,s2,tv2) = if l1 == l2 then True  else
-                                        if s1 /= s2 then False else
+test_var_eq :: (Int8,TVar) -> (Int8,TVar) -> Bool
+test_var_eq (s1,tv1) (s2,tv2) = if s1 /= s2 then False else
  case (tv1,tv2) of
   (Econst i,Econst j) -> i == j
   (Earg x1,Earg x2)   -> test x1 x2
@@ -65,58 +63,64 @@ test_var_eq n (l1,s1,tv1) (l2,s2,tv2) = if l1 == l2 then True  else
   (Eslice i1 i2 x,Eslice j1 j2 y) -> i1 == j1 && i2 == j2 && test x y
   (Eselect i x, Eselect j y)      -> i == j && test x y
   _                               -> False
- where test = test_var_eq $ n - 1
-data EqVar = EqVar Var deriving (Show)
+ where test (_,s1,t1) (_,s2,t2) = test_var_eq (s1,t1) (s2,t2)
+data EqVar = EqVar (Int8,TVar) deriving (Show)
 fromv :: Var -> EqVar
-fromv v = EqVar v
+fromv (_,s,t) = EqVar (s,t)
 instance Eq EqVar where
-    (EqVar x) == (EqVar y) = test_var_eq 10000 x y
+    (EqVar x) == (EqVar y) = test_var_eq x y
 
 remove_double :: [String] -> [Var] -> [Var]
-remove_double secure l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_double' v mp in (nv : l, nmp)) ([],[]) l
-  where remove_double' :: Var -> [(EqVar,Var)] -> (Var,[(EqVar,Var)])
-        remove_double' x@(l,s,tv) mp = if l `elem` secure then ((l,s,ntv),(fromv x,(l,s,ntv)) : nmp)
+remove_double secure l = fst3 $ foldl (\(l,mp,c) -> \v -> let (nv,nmp,nc) = remove_double' v mp c in (nv : l, nmp, nc)) ([],[],0) l
+  where fst3 (a,_,_) = a
+        remove_double' :: Var -> [(EqVar,Var)] -> Int -> (Var,[(EqVar,Var)],Int)
+        remove_double' x@(ol,s,tv) mp c = if l `elem` secure
+            then ((ol,s,ntv),(fromv x,(ol,s,ntv)) : nmp,c)
             else case lookup (fromv x) mp of
-             Just t    -> (t,mp)
-             Nothing   -> ((l,s,ntv),(fromv x,(l,s,ntv)) : nmp)
-         where (ntv,nmp) = case tv of
-                Einput      -> (tv,mp)
-                Earg v      -> let (v',mp') = remove_double' v mp in (Earg v', mp')
-                Econst i    -> (tv,mp)
-                Ereg s      -> (tv,mp)
-                Enot v      -> let (v',mp') = remove_double' v mp in (Enot v', mp')
-                Eand v1 v2  -> let (v1',mp')  = remove_double' v1 mp in
-                               let (v2',mp'') = remove_double' v2 mp' in
-                               (Eand v1' v2', mp'')
-                Eor  v1 v2  -> let (v1',mp')  = remove_double' v1 mp in
-                               let (v2',mp'') = remove_double' v2 mp' in
-                               (Eor v1' v2', mp'')
-                Exor v1 v2  -> let (v1',mp')  = remove_double' v1 mp in
-                               let (v2',mp'') = remove_double' v2 mp' in
-                               (Exor v1' v2', mp'')
-                Enand v1 v2 -> let (v1',mp')  = remove_double' v1 mp in
-                               let (v2',mp'') = remove_double' v2 mp' in
-                               (Enand v1' v2', mp'')
+             Just t    -> (t,mp,c)
+             Nothing   -> ((l,s,ntv),(fromv x,(l,s,ntv)) : nmp,nc)
+         where (ntv,nmp,nc) = case tv of
+                Einput      -> (tv,mp,c+1)
+                Earg v      -> let (v',mp',c') = remove_double' v mp (c+1) in (Earg v', mp', c')
+                Econst i    -> (tv,mp,c+1)
+                Ereg s      -> (tv,mp,c+1)
+                Enot v      -> let (v',mp',c') = remove_double' v mp (c+1) in (Enot v', mp', c')
+                Eand v1 v2  -> let (v1',mp',c')   = remove_double' v1 mp (c+1) in
+                               let (v2',mp'',c'') = remove_double' v2 mp' c' in
+                               (Eand v1' v2', mp'',c'')
+                Eor  v1 v2  -> let (v1',mp',c')   = remove_double' v1 mp (c+1) in
+                               let (v2',mp'',c'') = remove_double' v2 mp' c' in
+                               (Eor v1' v2', mp'', c'')
+                Exor v1 v2  -> let (v1',mp',c')   = remove_double' v1 mp (c+1) in
+                               let (v2',mp'',c'') = remove_double' v2 mp' c' in
+                               (Exor v1' v2', mp'',c'')
+                Enand v1 v2 -> let (v1',mp',c')   = remove_double' v1 mp (c+1) in
+                               let (v2',mp'',c'') = remove_double' v2 mp' c' in
+                               (Enand v1' v2', mp'',c'')
                 Econcat v1 v2 ->
-                               let (v1',mp')  = remove_double' v1 mp in
-                               let (v2',mp'') = remove_double' v2 mp' in
-                               (Econcat v1' v2', mp'')
+                               let (v1',mp',c')   = remove_double' v1 mp (c+1) in
+                               let (v2',mp'',c'') = remove_double' v2 mp' c' in
+                               (Econcat v1' v2', mp'',c'')
                 Emux v1 v2 v3 ->
-                               let (v1',mp')   = remove_double' v1 mp in
-                               let (v2',mp'')  = remove_double' v2 mp' in
-                               let (v3',mp''') = remove_double' v3 mp'' in
-                               (Emux v1' v2' v3', mp''')
+                               let (v1',mp',c')     = remove_double' v1 mp (c+1) in
+                               let (v2',mp'',c'')   = remove_double' v2 mp' c' in
+                               let (v3',mp''',c''') = remove_double' v3 mp'' c'' in
+                               (Emux v1' v2' v3', mp''',c''')
                 Erom i1 i2 v ->
-                               let (v',mp') = remove_double' v mp in (Erom i1 i2 v', mp')
+                               let (v',mp',c') = remove_double' v mp (c+1)
+                               in (Erom i1 i2 v', mp', c')
                 Eram i1 i2 v1 v2 v3 v4 ->
-                               let (v1',mp1) = remove_double' v1 mp in
-                               let (v2',mp2) = remove_double' v2 mp1 in
-                               let (v3',mp3) = remove_double' v3 mp2 in
-                               let (v4',mp4) = remove_double' v4 mp3 in
-                               (Eram i1 i2 v1' v2' v3' v4', mp4)
+                               let (v1',mp1,c1) = remove_double' v1 mp  (c+1) in
+                               let (v2',mp2,c2) = remove_double' v2 mp1 c1 in
+                               let (v3',mp3,c3) = remove_double' v3 mp2 c2 in
+                               let (v4',mp4,c4) = remove_double' v4 mp3 c3 in
+                               (Eram i1 i2 v1' v2' v3' v4', mp4, c4)
                 Eslice i1 i2 v ->
-                               let (v',mp') = remove_double' v mp in (Eslice i1 i2 v', mp')
-                Eselect i v -> let (v',mp') = remove_double' v mp in (Eselect i v', mp')
+                               let (v',mp',c') = remove_double' v mp (c+1)
+                               in (Eslice i1 i2 v', mp',c')
+                Eselect i v -> let (v',mp',c') = remove_double' v mp (c+1)
+                               in (Eselect i v', mp', c')
+               l = "__" ++ show c
 
 
 writeNetlist :: [Var] -> [Var] -> [String] -> String
@@ -175,10 +179,14 @@ writeNetlist cmps vs other_outputs =
        show_var (l,s) = if s == 1 then l
                         else l ++ " : " ++ show s
 
-runVM :: [String] -> VarMonad a -> a
-runVM g m = case S.evalStateT m g of
-    Right x -> x
-    Left  e -> error e
+runVM :: [String] -> VarMonad a -> VarMonad a
+runVM s m = do
+    (mn,l) <- S.get
+    S.put (mn,s)
+    ret <- m
+    (mn',_) <- S.get
+    S.put (mn',l)
+    return ret
 
 singleton :: Var -> VarMonad [Var]
 singleton v = return [v]
@@ -186,7 +194,14 @@ outputs :: [VarMonad Var] -> VarMonad [Var]
 outputs vs = M.sequence vs
 
 create :: (Int8,TVar) -> VarMonad Var
-create (s,t) = nlabel >>= \l -> return (l,s,t)
+create (s,t) = do
+    (m,l) <- S.get
+    case lookup (EqVar (s,t)) m of
+        Just v  -> return v
+        Nothing -> do
+            let v = (head l, s, t)
+            S.put ((EqVar (s,t), v) : m, tail l)
+            return v
 
 input :: String -> Int8 -> VarMonad Var
 input l s = return (l,s,Einput)
@@ -253,7 +268,9 @@ v @: i = if i >= size v then fail "Select indice too big"
 constV :: Int8 -> Int -> VarMonad Var
 constV s i = create (s, Econst i)
 
-type Netlist = ([Var],[Var],[String]) -- to be calculated variables,out varables names, out names for debug
+type Netlist = VarMonad ([Var],[Var],[String])
 
 putNetlist :: Netlist -> IO ()
-putNetlist (a,b,c) = putStrLn $ writeNetlist a b c
+putNetlist md = case S.evalStateT md ([], make_gen "main") of
+    Left e        -> fail $ "Error : " ++ e
+    Right (a,b,c) -> putStrLn $ writeNetlist a b c

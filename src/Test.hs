@@ -5,10 +5,10 @@ import Data.Int
 import Flags
 import Utility
 
-test_system fun src dest flags = (afun,a1,a2,res)
- where (afun,a1,a2) = test_alu fun src dest
-       res          = test_check_flags fun flags
-
+test_system fun src dest flags = do
+    (afun,a1,a2) <- test_alu fun src dest
+    res <- test_check_flags fun flags
+    return (afun,a1,a2,res)
 -- TestCode   Test    operation          FlagTest
 --    00       eq      xor(src, dest)      z
 --    01       neq     dest - src          nz
