@@ -59,23 +59,6 @@ netlist'' = (dps, [rd,rdt,get_register "sp"], [])
        dt   = ("data", 16, Einput)
        addr = ("addr", 16, Einput)
 
--- Shows how to do recursive definition
-netlist :: Netlist
-netlist = (dps, [rr,rw], [])
- where rcmd = ("rcmd", 4,  Einput)
-       wcmd = ("wcmd", 4,  Einput)
-       wval = ("wval", 16, Einput)
-       we   = ("we",   1,  Einput)
-       low  = ("low",  16, Econst 0)
-       lowe = ("lowe", 1,  Econst 0)
-       hiw  = ("hiw",  16, Econst 0)
-       hiwe = ("hiwe", 1,  Econst 0)
-       spw  = ("spw",  16, Econst 0)
-       spwe = ("spwe", 1,  Econst 0)
-       real_write = ("real_write", 16, Eor wval rw)
-       (rr,rw,dps) = register_manager rcmd wcmd real_write we
-                                      low lowe hiw hiwe spw spwe
-
 aluNetlist :: Netlist
 aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
                         renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],
@@ -124,5 +107,19 @@ flag_code_test = (flags, [out], [])
        out   = flag_code code
        flags = flag_system en (wz,wc,wp,wo,ws)
 
+register_manager_test = (regs, [rreg,rwreg], [])
+ where rcmd  = inputV "rcmd"   4
+       wcmd  = inputV "wcmd"   4
+       write = inputV "write" 16
+       we    = inputV "we"     1
+       hiw   = inputV "hiw"   16
+       hiwe  = inputV "hiwe"   1
+       low   = inputV "low"   16
+       lowe  = inputV "lowe"   1
+       spw   = inputV "spw"   16
+       spwe  = inputV "spwe"   1
+       (rreg,rwreg,regs) = register_manager rcmd wcmd write we
+                                            hiw hiwe low lowe spw spwe
+
 main :: IO ()
-main = putNetlist aluNetlist
+main = putNetlist register_manager_test
