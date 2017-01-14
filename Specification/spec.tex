@@ -141,6 +141,11 @@ Les codes sont représentés sur 4 bits. Les instructions courtes commencent par
   \verb!mem! mais l'adresse mémoire utilisée (\verb!src! ou \verb!dest! en
   fonction du code fonction) de voit ajouté le contenu de \verb!val!
 \item Code 13 : Valeur Immédiate (\verb!limm!) : Charge la valeur de \verb!val! dans \verb!dest! 
+\item Code 15 : GPU (\verb!gpu!) : Envoie une instruction donnée au GPU. Le
+  champs Val doit avoir ses 2 bits de poids faibles à 0 et contient instr sur
+  ses bits de 2 à 7 et modif sur ses bits de 8 à 15 (voir section sur le gpu.)
+  Le champs \verb!src! contient le registre qui remplira le champs \verb!data!
+  de l'instruction GPU.
 \end{itemize}
 
 \section{Codes fonctions}
@@ -295,14 +300,21 @@ offset se fait uniquement par la présence d'un entier derrière : \verb!wrl a b
 \paragraph{Valeur Immédiate :} On écrira \verb!limm 42 a! pour charger la valeur
 42 dans \verb!a!.
 
+\paragraph{Instruction GPU :} On écrira \verb!gpu wmi r2! pour dire au GPU de
+mettre la valeur de \verb!r2! dans le champs des minutes.
+
+\paragraph{Commentaire :} On mettra un \# devant une ligne pour la commenter.
+
 \section{Mapping RAM}
 
 \paragraph{Zone spéciales :}
 \begin{itemize}
-\item Adresse 0-3 : Code d'Erreur : si cette valeur deviens non nulle, le
+\item Adresse 0-3 : Code d'erreur : si cette valeur deviens non nulle, le
   processeur s'arrète immédiatement et affiche ce code.
 \item Address 4-7 : Carte graphique : ce qui est placé dans cette adresse sera
   donné à la carte graphique.
+\item Address 8-11 : Temps : entier 32-bit contenant le temps écoulé depuis le
+  1er janvier 1970.
 \end{itemize}
 
 \section{Interface avec carte Graphique}
@@ -321,7 +333,8 @@ offset se fait uniquement par la présence d'un entier derrière : \verb!wrl a b
     }
     square("c",0,2); 
     square("instr",2,6);
-    square("data",8,24,true);
+    square("modif",8,8);
+    square("data",16,16,true);
   \end{asy}
 \end{center}
 
@@ -347,8 +360,8 @@ offset se fait uniquement par la présence d'un entier derrière : \verb!wrl a b
 \item Code 0 : Passe en mode afficheur 7 -segment (où cas où on en mette un
   autre).
 \item Code 1 - 7 : écrit la nouvelle valeur de cette unité dans l'afficheur (1 :
-  s, 2 : m, 3 : h , 4 : jour de la semaine , 5 jour du mois , 6 : mois , 7
-  année) la valeur est lue sur les 16-bits de poids fort de data (bit 16 à 31
+  \verb!ws!, secondes, 2 : \verb!wmi!, minutes, 3 : \verb!wh!, heures , 4 : \verb!wwd! jour de la
+  semaine , 5 : \verb!wd! jour du mois , 6 : \verb!wmo! : mois , 7  : \verb!wy! : année) la valeur est lue sur les 16-bits de poids fort de data (bit 16 à 31
   de l'instruction).
 \end{itemize}
 
