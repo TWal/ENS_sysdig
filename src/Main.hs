@@ -91,9 +91,7 @@ netlist' = (dps, [out], [])
 aluNetlist :: Netlist
 aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
                         renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],
-               ["binbits","xab","andab","ario","ario0","ario1","ario2","ario3","ario4",
-                "co0","co1","co2","co3","co4"
-               ])
+               [])
   where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
         bin = inputV "bin" 1
         func = inputV "func" 4

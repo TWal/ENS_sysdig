@@ -122,8 +122,8 @@ remove_double secure l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_dou
 writeNetlist :: [Var] -> [Var] -> [String] -> String
 writeNetlist cmps vs other_outputs =
     let outputs = map label vs in
-    let filter = remove_double outputs in
-    -- let filter = id in
+    --let filter = remove_double outputs in
+     let filter = id in
     let usedv = filter $ cmps ++ vs in
     let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) $ usedv in
        "INPUT "    ++ sepBy ", " id       inputs

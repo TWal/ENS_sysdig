@@ -67,18 +67,18 @@ simpleBinInt :: Int8 -> Var -> Var -> Var -> VarMonad (Var,Var)
 simpleBinInt 1 c xab andab = do
   xabbit <- xab @: 0
   andabbit <- andab @: 0
-  ario <- renameVM "ario0" $ c ^: xabbit
+  ario <- c ^: xabbit
   cc <- c &: xabbit
-  co <- renameVM "co0" $ andabbit |: cc
+  co <- andabbit |: cc
   return (co,ario)
 
 simpleBinInt n c xab andab = do
   (ci,arioend) <- simpleBinInt (n-1) c xab andab
   xabbit <- xab @: (n-1)
   andabbit <- andab @: (n-1)
-  ario <- renameVM ("ario" ++ (show $ n-1)) $ ci ^: xabbit
+  ario <-  ci ^: xabbit
   cc <- ci &: xabbit
-  co <- renameVM ("co" ++  (show $n-1)) $ andabbit |: cc
+  co <-  andabbit |: cc
   out <- ario -: arioend
   return(co,out)
 
@@ -93,7 +93,7 @@ simpleBin bincode a b = runVM (make_gen "simpleBin") $ do
     (binaryToInt8 "1101", binaryToInt "1110010"),--OR
     (binaryToInt8 "1110", binaryToInt "0000000"),--XOR
     (binaryToInt8 "1111", binaryToInt "0010010")]--NAND
-  bits <- renameVM "binbits" $ long_select4 bincode l
+  bits <- long_select4 bincode l
   ax <- bits @:6
   bx <- bits @:5
   ox <- bits @:4
@@ -103,13 +103,12 @@ simpleBin bincode a b = runVM (make_gen "simpleBin") $ do
   ari <- bits @:0
   ra <- a ^-: ax
   rb <- b ^-: bx
-  xab <- renameVM "xab" $ ra ^: rb
-  andab <- renameVM "andab" $ ra &: rb
+  xab <- ra ^: rb
+  andab <- ra &: rb
   fc <- return $ get_flag "c"
   cflag <- cf &: fc
   c <- ci ^: cflag
-  (co,ario') <- simpleBinInt 16 c xab andab
-  let ario = renameV "ario" ario'
+  (co,ario) <- simpleBinInt 16 c xab andab
   logo <- andb <: (andab,xab)
   ro <- ari <: (ario,logo)
   out <- ro ^-: ox
@@ -149,7 +148,7 @@ makeArray :: Int8 -> Var -> VarMonad Var
 makeArray 1 v = do
   return v
 
-makeArray n v = do
+makeArray n v = do --TODO can be quicker
   vend <- makeArray (n-1) v
   v -: vend
 
@@ -169,21 +168,21 @@ shiftr inp val fstbit = do
   res3 <- shiftrInt 3 v3 inp fstbit
   res2 <- shiftrInt 2 v2 res3 fstbit
   res1 <- shiftrInt 1 v1 res2 fstbit
-  shiftlInt 0 v0 res1
+  shiftrInt 0 v0 res1 fstbit
 
 simpleShift :: Var -> Var -> Var -> VarMonad Var
 simpleShift bincode a b = do
   highb <- b !!: (4,15)
   ishigh <- nap_or highb
-  b15 <- b @: 15
-  resifhigh <- makeArray 16 b15
-  bc0 <- bincode @:0
-  bc1 <- bincode @:1
+  a15 <- a @: 15
+  isleft <- bincode @:0
+  isari <- bincode @:1
   zero <- constV 1 0
-  fstb <- bc1 <: (b15,zero)
+  fstb <- isari <: (a15,zero)
+  resifhigh <- makeArray 16 fstb
   sl <- shiftl a b
   sr <- shiftr a b fstb
-  resiflow <- bc0 <:(sl,sr)
+  resiflow <- isleft <:(sl,sr)
   ishigh <: (resifhigh,resiflow)
 
 
