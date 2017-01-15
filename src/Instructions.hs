@@ -9,7 +9,7 @@ instruction_reader ins = do
     dest <- ins !!: (4,7)
     src  <- ins !!: (8,11)
     func <- ins !!: (12,15)
-    return (op,dest,src,func)
+    return (renameV "d_op" op, renameV "d_dest" dest, renameV "d_src" src, renameV "d_func" func)
 
 pp_register :: Var -> VarMonad Var
 pp_register w = constV 1 1 >>= \we -> return $ snd $ make_register w we "pp"
@@ -30,7 +30,8 @@ instruction_system test_func test_src test_dest test_out
     (_,pp1)            <- oneadder pp
     (_,pp2)            <- oneadder pp1
     ins                <- rom 16 16 pp
-    val                <- rom 16 16 pp1
+    val'                <- rom 16 16 pp1
+    let val = renameV "d_val" val'
     (op,dest,src,func) <- instruction_reader ins
     is_long            <- op @: 3
     next_pp            <- is_long <: (pp2,pp1)
@@ -91,7 +92,9 @@ instruction_system test_func test_src test_dest test_out
     reg_data' <- is_alu <: (alu_res,mem_nap)
     reg_data  <- ins_limm <: (val,reg_data')
     reg_we'   <- is_alu &: alu_we
-    reg_we    <- reg_we' |: mem_reading
+    reg_we''  <- mem_enable &: mem_reading
+    reg_we''' <- reg_we' |: reg_we''
+    reg_we    <- reg_we''' |: ins_limm
 
     -- Update pp
     pp_update <- is_jmp <: (jmpdest,next_pp)
