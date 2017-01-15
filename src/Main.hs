@@ -124,14 +124,16 @@ memory_system_flag_test = (regs, [nap], ["sp_temp"])
        addr  = inputV "addr" 16
        (_,nap,spwe,spw,_) = memory_system fun en dt addr
 
-test_system_test = (dflags,[res,afun,a1,a2],[])
+test_system_test = (realfn : dflags,[res,afund],[])
  where (afun, a1, a2, res) = test_system fun r1 r2 flags
        dflags = flag_system en flags
-       fun = inputV "func"  4
-       r1  = inputV "r1"   16
-       r2  = inputV "r2"   16
-       bin = vconstV "bin"  1 1
-       (_, _, flags, en) = alu bin afun a1 a2
+       fun    = inputV "func"  4
+       r1     = inputV "r1"   16
+       r2     = inputV "r2"   16
+       bin    = vconstV "bin"  1 1
+       afund  = dummy "afun" 4
+       (_, _, flags, en) = alu bin afund a1 a2
+       realfn = renameV "afun" afun
 
 main :: IO ()
 main = putNetlist test_system_test

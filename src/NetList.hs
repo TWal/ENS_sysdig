@@ -4,12 +4,14 @@ import Data.Int
 import Data.List
 import qualified Control.Monad.Trans.State.Strict as S
 import qualified Control.Monad as M
+import qualified Debug.Trace as T
 
 -- A variable is a size and a computing tree
 -- The string uniquely identify the var
 type Var = (String,Int8,TVar)
 data TVar =
     Einput
+  | Edummy
   | Econst Int
   | Earg Var
   | Ereg String
@@ -42,6 +44,9 @@ size :: Var -> Int8
 size (_,s,_) = s
 label :: Var -> String
 label (l,_,_) = l
+is_dummy :: Var -> Bool
+is_dummy (_,_,Edummy) = True
+is_dummy _            = False
 
 test_var_eq :: Int -> Var -> Var -> Bool
 test_var_eq 0 _ _ = False
@@ -81,6 +86,7 @@ remove_double secure l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_dou
              Nothing   -> ((l,s,ntv),(fromv x,(l,s,ntv)) : nmp)
          where (ntv,nmp) = case tv of
                 Einput      -> (tv,mp)
+                Edummy      -> (tv,mp)
                 Earg v      -> let (v',mp') = remove_double' v mp in (Earg v', mp')
                 Econst i    -> (tv,mp)
                 Ereg s      -> (tv,mp)
@@ -123,7 +129,6 @@ writeNetlist :: [Var] -> [Var] -> [String] -> String
 writeNetlist cmps vs other_outputs =
     let outputs = map label vs in
     let filter = remove_double outputs in
-    -- let filter = id in
     let usedv = filter $ cmps ++ vs in
     let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) $ usedv in
        "INPUT "    ++ sepBy ", " id       inputs
@@ -131,8 +136,10 @@ writeNetlist cmps vs other_outputs =
     ++ "\nVAR "    ++ sepBy ", " show_var vars
     ++ "\nIN\n"    ++ sepBy "\n" id       eqs
  where rdfs v@(l,s,_) x@(sns,ai,av,ae) = if elem l sns then x
-                                         else dfs v (l:sns,ai,(l,s):av,ae)
+                                         else if is_dummy v then (sns,ai,av,ae)
+                                         else dfs v (l:sns,ai,(l,s) : av, ae)
        dfs (l,s,Einput) (sns,ai,av,ae) = (sns,l:ai,av,ae)
+       dfs (l,s,Edummy) (sns,ai,av,ae) = (sns,ai,av,ae)
        dfs (l,s,Earg v) (sns,ai,av,ae) = rdfs v
            (sns,ai,av,(l ++ " = " ++ label v):ae)
        dfs (l,s,Econst i) (sns,ai,av,ae) =
@@ -252,6 +259,9 @@ v @: i = if i >= size v then fail "Select indice too big"
 
 constV :: Int8 -> Int -> VarMonad Var
 constV s i = create (s, Econst i)
+
+dummy :: String -> Int8 -> Var
+dummy nm s = (nm, s, Edummy)
 
 type Netlist = ([Var],[Var],[String]) -- to be calculated variables,out varables names, out names for debug
 
