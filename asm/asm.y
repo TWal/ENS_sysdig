@@ -264,13 +264,13 @@ program:
 
     |   program shortInstr newlines
         {
-            size += 2;
+            size += 1;
             $2->loc = @2;
             res.push_back($2);
         }
     |   program longInstr newlines
         {
-            size +=4;
+            size +=2;
             $2->loc = @2;
             res.push_back($2);
         }
