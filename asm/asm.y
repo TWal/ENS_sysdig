@@ -164,15 +164,13 @@ shortInstr:
             $$ = tmp;
         }
 
-    |   INS_MEM_UN
+    |   INS_MEM
         {
             auto tmp = new ShortI;
             tmp->opcode = 2;
             tmp->func = $1;
             $$ = tmp;
         }
-
-
     ;
 
 longInstr:
