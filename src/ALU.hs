@@ -7,7 +7,7 @@ import Debug.Trace
 import Data.Int
 
 -- in all ALU c , o ,s , ... designate flags
-alu :: Var -> Var -> Var -> Var -> Var -> (Var,Var,(Var,Var,Var,Var,Var),Var)
+alu :: Var -> Var -> Var -> Var -> Var -> (Var,Var,(Var,Var,Var,Var,Var),Var,Var,Var,Var,Var)
 alu bin func dest src imm = runVM (make_gen "alu") $ do
   func3 <- func @: 3
   func2 <- func @: 2
@@ -19,7 +19,7 @@ alu bin func dest src imm = runVM (make_gen "alu") $ do
 
   binres <-return $ binGlob func dest src
 
-  unres <- return $ unGlob func dest
+  (unres,hi,hien',lo,loen) <- return $ unGlob func dest
   binunres <- bin <::: (binres,unres)
 
   (c,o,out) <- isshift <:::(shiftres,binunres)
@@ -29,7 +29,12 @@ alu bin func dest src imm = runVM (make_gen "alu") $ do
   movsf <- select4_bit 1 func
   ismovs <- movsf &: bin
   fen <- notv ismovs
-  return (out,wen,flags,fen)
+  hi <- constV 16 0
+  hien <- constV 1 0
+  lo <- constV 16 0
+  loen <- constV 1 0
+  return (out,wen,flags,fen,hi,hien,lo,loen)
+
 
 simpleUnInt :: Int8 -> Var -> Var -> VarMonad (Var,Var)
 simpleUnInt 1 c inp = do
@@ -222,14 +227,28 @@ mult n op fact = do
   (c,littleres) <- adder preres addvalue
   c -: littleres
 
-umul op fact = runVM(make_gen "umul") $ do
-  mult 16 op fact
+mul code op fact = do
+  code0 <- code @: 0
+  zero16 <- constV 16 0
+  zero32 <- constV 32 0
+  out <- mult 16 op fact
+  op15 <- op @: 15
+  fact15 <- fact @:15
+  opcomp' <- op -: zero16
+  factcomp' <- op -: zero16
+  opcomp <- op15 <: (opcomp',zero32)
+  factcomp <- fact15 <:(factcomp',zero32)
+  (_,comp) <- adder opcomp factcomp
+  realcomp <- code0 <: (comp,zero32)
+  (_,rout) <- subber out realcomp
+  return rout
+
 
 ------------------------------FUSION CODE-----------------------------
 
 binGlob :: Var -> Var -> Var -> (Var,Var,Var)
-binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
-  binres <- return $ simpleBin code op1 op2
+binGlob code dest src = runVM (make_gen "binGlob") $ do
+  binres <- return $ simpleBin code dest src
   code1 <- code @: 1
   code2 <- code @: 2
   code3 <- code @: 3
@@ -237,7 +256,7 @@ binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
   ismovtmp <- code1 |: code2
   nismov <- ismovtmp |: code3
   ismov <- notv nismov
-  ismov <::: ((zero,zero,op1),binres)
+  ismov <::: ((zero,zero,dest),binres)
 
 
 unGlob :: Var -> Var -> (Var,Var,Var)
@@ -246,8 +265,8 @@ unGlob code op = runVM (make_gen "unGlob") $ do
   code3 <- code @: 3
   zero <- constV 1 0
   isnotSimple <- return code3
-  prout <- constV 16 0
-  isnotSimple <:::((zero,zero,prout),simpleunres)
+  zero16 <- constV 16 0
+  isnotSimple <:::((zero,zero,zero16),simpleunres)
 
 setFlags :: Var -> Var -> Var -> (Var,Var,Var,Var,Var)
 setFlags c o out = runVM (make_gen "setFlags") $ do
