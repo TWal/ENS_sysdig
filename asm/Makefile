@@ -6,7 +6,7 @@ all: messyall cleantmp
 messyall:
 	@bison -d asm.y -o asm.cpp
 	@flex asm.l
-	@g++ -O2 lex.yy.cc asm.cpp main.cpp -o asm
+	@g++ -std=gnu++11 -O2 lex.yy.cc asm.cpp main.cpp -o asm
 	
 cleantmp:
 	@rm -f asm.cpp
