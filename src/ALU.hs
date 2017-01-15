@@ -237,7 +237,7 @@ binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
   ismovtmp <- code1 |: code2
   nismov <- ismovtmp |: code3
   ismov <- notv nismov
-  ismov <::: ((zero,zero,op1),binres)
+  ismov <::: ((zero,zero,op2),binres)
 
 
 unGlob :: Var -> Var -> (Var,Var,Var)
