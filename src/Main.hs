@@ -52,6 +52,7 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [], [])
        wcmd_d             = dummy "wcmd"              4
        reg_write_data_d   = dummy "reg_write_data"   16
        reg_write_enable_d = dummy "reg_write_enable"  1
+       fun_for_test_d     = dummy "fun_for_test"      4
 
        ( read_reg, write_reg, dps) =
            register_manager rcmd_d wcmd_d reg_write_data_d reg_write_enable_d
@@ -66,12 +67,12 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [], [])
            flag_system flag_en_d (z_d,c_d,p_d,o_d,s_d)
 
        ( test_fun, test_src, test_dst, test_result) =
-           test_system test_fun_d src_d dest_d (z_d,c_d,p_d,o_d,s_d)
+           test_system fun_for_test read_reg_d write_reg_d (z_d,c_d,p_d,o_d,s_d)
 
        ( alu_res, alu_wen, (z,c,p,o,s), flag_en) =
            alu alu_bin_d fun_d src_d dest_d
 
-       ( alu_bin, fun, src, dest
+       ( alu_bin, fun, fun_for_test, src, dest
         , whi, wehi, wlo, welo, wsp, wesp
         , mem_enable, addr
         , rcmd, wcmd, reg_write_data, reg_write_enable, pp) =
@@ -122,13 +123,15 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [], [])
        wcmd_c             = renameV "wcmd"             wcmd
        reg_write_data_c   = renameV "reg_write_data"   reg_write_data
        reg_write_enable_c = renameV "reg_write_enable" reg_write_enable
+       fun_for_test_c     = renameV "fun_for_test"     fun_for_test
        to_compute         =
            [ read_reg_c, write_reg_c,
              mem_reading_c, mem_data_c, mem_wesp_c, mem_wsp_c, mem_ret_c, flag_cd_c,
              test_fun_c, test_src_c, test_dst_c, test_result_c, alu_res_c, alu_wen_c,
              z_c, c_c, p_c, o_c, s_c, flag_en_c, alu_bin_c, fun_c, src_c, dest_c,
              whi_c, wehi_c, wlo_c, welo_c, wsp_c, wesp_c, mem_enable_c,
-             addr_c, rcmd_c, wcmd_c, reg_write_data_c, reg_write_enable_c ]
+             addr_c, rcmd_c, wcmd_c, reg_write_data_c, reg_write_enable_c,
+             fun_for_test_c ]
 
 aluNetlist :: Netlist
 aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,

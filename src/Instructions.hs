@@ -97,7 +97,7 @@ instruction_system test_func test_src test_dest test_out
     pp_update <- is_jmp <: (jmpdest,next_pp)
     pp        <- pp_register pp_update
 
-    return (is_bin, real_func, real_src, real_dest, write_hi, enable_hi, write_lo, enable_lo,
+    return (is_bin, real_func, func, real_src, real_dest, write_hi, enable_hi, write_lo, enable_lo,
             wsp, esp, mem_enable, addr,
             read_cmd, write_cmd, reg_data, reg_we, pp)
 
