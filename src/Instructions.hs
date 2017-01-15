@@ -24,6 +24,7 @@ instruction_system test_func test_src test_dest test_out
     c1        <- constV 16 1
     c2        <- constV 16 2
     code_push <- constV 4 8
+    let sp = get_register "sp"
 
     pp                 <- get_pp_register
     (pp1,_)            <- full_adder 16 c1 pp
@@ -55,7 +56,8 @@ instruction_system test_func test_src test_dest test_out
     is_bin     <- is_test |: ins_alu_bin
     real_func' <- is_test <: (test_func,func)
     real_func  <- ins_call <: (code_push,real_func') -- In case of a call, let the memory system do the push
-    real_src   <- is_test <: (test_src,read_reg)
+    real_src'  <- is_test <: (test_src,read_reg)
+    real_src   <- ins_call <: (next_pp,real_src')
     real_dest  <- is_test <: (test_dest,write_reg)
     write_hi   <- copy alu_hiw
     enable_hi  <- alu_hiwe &: ins_alu_un
@@ -69,19 +71,17 @@ instruction_system test_func test_src test_dest test_out
     addr'      <- mem_reading <: (read_reg,write_reg) -- If we're reading (ie not writing), the address is in src
                                                       -- otherwise it's in dest
     (addr'',_) <- full_adder 16 addr' val -- Add the offset
-    addr'''    <- is_long <: (addr'',addr') -- Consider the offset only if the instruction is long
-    addr       <- ins_call <: (next_pp,addr''') -- In case of the call, what we write is the address of the
-                                                -- next instruction
+    addr       <- is_long <: (addr'',addr') -- Consider the offset only if the instruction is long
 
     -- Jump instructions
     is_jmp_test <- is_test &: test_out
     is_flag     <- ins_jump_flag_short |: ins_jump_flag_long
     is_jmp_flag <- is_flag &: flag_code_out
-    is_jmp      <- long_or [is_jmp_test, is_jmp_flag, ins_jump]
+    jump_on_ret <- mem_enable &: mem_ret
+    is_jmp      <- long_or [is_jmp_test, is_jmp_flag, ins_jump, ins_call, jump_on_ret]
     cad         <- next_is_long <: (c2,c1)
     (jpp,_)     <- full_adder 16 cad next_pp
-    jump_on_ret <- mem_enable &: mem_ret
-    jmpdest'    <- jump_on_ret <: (wsp,jpp)
+    jmpdest'    <- jump_on_ret <: (mem_nap,jpp)
     jump_on_val <- is_long |: ins_call
     jmpdest     <- jump_on_val <: (val,jmpdest')
 
@@ -97,7 +97,8 @@ instruction_system test_func test_src test_dest test_out
     pp_update <- is_jmp <: (jmpdest,next_pp)
     pp        <- pp_register pp_update
 
-    return (is_bin, real_func, func, real_src, real_dest, write_hi, enable_hi, write_lo, enable_lo,
+    func' <- copy func
+    return (is_bin, real_func, func', real_src, real_dest, write_hi, enable_hi, write_lo, enable_lo,
             wsp, esp, mem_enable, addr,
             read_cmd, write_cmd, reg_data, reg_we, pp)
 
