@@ -259,13 +259,14 @@ binGlob code dest src = runVM (make_gen "binGlob") $ do
   ismov <::: ((zero,zero,dest),binres)
 
 
-unGlob :: Var -> Var -> (Var,Var,Var)
+unGlob :: Var -> Var -> (Var,Var,Var,(Var,Var,Var,Var))
 unGlob code op = runVM (make_gen "unGlob") $ do
   simpleunres <- return $ simpleUn code op
   code3 <- code @: 3
   zero <- constV 1 0
   isnotSimple <- return code3
   zero16 <- constV 16 0
+  initlo <- return $ get_register "lo";
   isnotSimple <:::((zero,zero,zero16),simpleunres)
 
 setFlags :: Var -> Var -> Var -> (Var,Var,Var,Var,Var)

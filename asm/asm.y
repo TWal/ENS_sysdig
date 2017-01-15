@@ -230,7 +230,7 @@ longInstr:
 membin:
         INS_MEM_BIN REGISTER REGISTER
         {
-            size +=2;
+            size +=1;
             auto tmp = new ShortI;
             tmp->opcode = 2;
             tmp->dest = $3;
@@ -240,7 +240,7 @@ membin:
         }
     |  INS_MEM_BIN REGISTER REGISTER IMMEDIATE
         {
-            size += 4;
+            size += 2;
             auto tmp = new LongI;
             tmp->opcode = 12;
             tmp->dest = $3;
