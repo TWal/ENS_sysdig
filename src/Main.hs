@@ -15,7 +15,7 @@ import Test
 -- On Mux assumes 1 -> first choice
 
 computer :: Netlist
-computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [], [])
+computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_c] ++ dps, [])
  where read_reg_d         = dummy "read_reg"         16
        write_reg_d        = dummy "write_reg"        16
        mem_reading_d      = dummy "mem_reading"       1
@@ -70,7 +70,7 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [], [])
            test_system fun_for_test read_reg_d write_reg_d (z_d,c_d,p_d,o_d,s_d)
 
        ( alu_res, alu_wen, (z,c,p,o,s), flag_en) =
-           alu alu_bin_d fun_d src_d dest_d
+           alu alu_bin_d fun_d dest_d src_d rcmd_d
 
        ( alu_bin, fun, fun_for_test, src, dest
         , whi, wehi, wlo, welo, wsp, wesp
@@ -231,7 +231,8 @@ test_system_test = (realfn : dflags,[res,afund],[])
        r2     = inputV "r2"   16
        bin    = vconstV "bin"  1 1
        afund  = dummy "afun" 4
-       (_, _, flags, en) = alu bin afund a1 a2
+       (_, _, flags, en) = alu bin afund a1 a2 imm
+       imm    = vconstV "immediate" 4 0
        realfn = renameV "afun" afun
 
 main :: IO ()
