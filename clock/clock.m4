@@ -289,6 +289,10 @@ leap400_2:
     wrw a0 r3 46
     wrl a0 rt 41
     SETFEB()
+
+    limm 0 r1
+    limm 0 r2
+    limm 0 r3
     jmp mainLoop
 
 
