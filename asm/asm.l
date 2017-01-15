@@ -140,7 +140,7 @@ jneq60    { yyval->build( 15); return token::LINS_JTEST; }
 jmp        return token::LINS_JMP;
 call       return token::LINS_CALL;
 limm       return token::LINS_LIMM;
-j[zcpos]   { yyval->build( code_flag(yytext[2]));
+j[zcpos]   { yyval->build( code_flag(yytext[1]));
              return token::LINS_JFLAG;
            }
 jn[zcpos]  { yyval->build( 1 + code_flag(yytext[2]));
