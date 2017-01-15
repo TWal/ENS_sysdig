@@ -79,7 +79,10 @@ adderInt n xorxy andxy = do
   return (co,out)
 
 adder :: Var -> Var -> VarMonad (Var,Var)
-adder x y = do
+adder x y =
+  if size x /= size y then error "wrong size adder"
+  else
+  do
   xorxy <- x ^: y
   andxy <- x &: y
   adderInt (size x) xorxy andxy
@@ -122,11 +125,15 @@ subberInt n xorxy andxy = do
   return (co,out)
 
 subber :: Var -> Var -> VarMonad (Var,Var)
-subber x y = do
+subber x y =
+  if size x /= size y then error "wrong size subber"
+  else
+  do
   y' <- notv y
   xorxy <- x ^: y'
   andxy <- x &: y'
   subberInt (size x) xorxy andxy
+  
 
 long_bin :: (Var -> Var -> VarMonad Var) -> [Var] -> VarMonad Var
 long_bin b [] = fail "long_bin on empty list"
