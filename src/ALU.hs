@@ -219,7 +219,7 @@ mult n op fact = do
   preres <- mult (n-1) op fact
   addvalif1 <- op -: zeron
   addvalue <- bit <: (addvalif1,zerores)
-  (littleres,c) <- full_adder (n+16-1) preres addvalue
+  (c,littleres) <- adder preres addvalue
   c -: littleres
 
 umul op fact = runVM(make_gen "umul") $ do

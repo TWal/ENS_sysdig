@@ -154,11 +154,11 @@ select4_bit_test = ([],[out1,out2],[])
        out1 = runVM (make_gen "out1") $ select4_bit 3 inpt
        out2 = runVM (make_gen "out2") $ select4_bit 7 inpt
 
-full_adder_test ::Netlist
-full_adder_test = ([],[res,r],[])
+adder_test ::Netlist
+adder_test = ([],[res,r],[])
  where a1      = inputV "a1" 64
        a2      = inputV "a2" 64
-       (res,r) = runVM (make_gen "full_adder") $ full_adder 64 a1 a2
+       (r,res) = runVM (make_gen "adder") $ adder a1 a2
 
 flag_system_test = (flags, [z,c,p,o,s], [])
  where inz         = inputV "inz"  1

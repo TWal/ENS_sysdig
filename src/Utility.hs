@@ -47,20 +47,6 @@ simple_adder c x y = do
     rc   <- c' |: c'''
     return (r,rc)
 
-full_adder :: Int8 -> Var -> Var -> VarMonad (Var,Var)
-full_adder 1 x y = do
-    x' <- x @: 0
-    y' <- y @: 0
-    c  <- constV 1 0
-    simple_adder c x' y'
-full_adder n x y = do
-    x' <- x @: (n - 1)
-    y' <- y @: (n - 1)
-    (r',c') <- full_adder (n-1) x y
-    (r,c)   <- simple_adder c' x' y'
-    res <- r -: r'
-    return (res,c)
-
 adderInt :: Int8 -> Var -> Var -> VarMonad (Var,Var)
 adderInt 1 xorxy andxy = do
   xorb <- xorxy @: 0

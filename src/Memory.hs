@@ -29,7 +29,7 @@ memory_system fun en dt addr = runVM (make_gen "memory_system") $ do
     esp  <- en &: is_c
 
     ad      <- ince <: (c2,cmp2)
-    (wsp,_) <- full_adder 16 sp ad
+    (_,wsp) <- adder sp ad
 
     -- Are we performing a read operation ?
     reading <- is_r |: pop
@@ -46,7 +46,7 @@ memory_system fun en dt addr = runVM (make_gen "memory_system") $ do
     -- The used addresses for the two byte read
     used_addr1'    <- ince <: (wsp,sp)
     used_addr1     <- is_c <: (used_addr1',addr)
-    (used_addr2,_) <- full_adder 16 used_addr1 c1
+    (_,used_addr2) <- oneadder used_addr1
 
     used_dt <- return dt
     datal' <- used_dt !!: (0,7)

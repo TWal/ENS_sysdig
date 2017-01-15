@@ -27,8 +27,8 @@ instruction_system test_func test_src test_dest test_out
     let sp = get_register "sp"
 
     pp                 <- get_pp_register
-    (pp1,_)            <- full_adder 16 c1 pp
-    (pp2,_)            <- full_adder 16 c1 pp1
+    (_,pp1)            <- oneadder pp
+    (_,pp2)            <- oneadder pp1
     ins                <- rom 16 16 pp
     val                <- rom 16 16 pp1
     (op,dest,src,func) <- instruction_reader ins
@@ -70,7 +70,7 @@ instruction_system test_func test_src test_dest test_out
     wsp        <- copy mem_wsp
     addr'      <- mem_reading <: (read_reg,write_reg) -- If we're reading (ie not writing), the address is in src
                                                       -- otherwise it's in dest
-    (addr'',_) <- full_adder 16 addr' val -- Add the offset
+    (_,addr'') <- adder addr' val -- Add the offset
     addr       <- is_long <: (addr'',addr') -- Consider the offset only if the instruction is long
 
     -- Jump instructions
@@ -80,7 +80,7 @@ instruction_system test_func test_src test_dest test_out
     jump_on_ret <- mem_enable &: mem_ret
     is_jmp      <- long_or [is_jmp_test, is_jmp_flag, ins_jump, ins_call, jump_on_ret]
     cad         <- next_is_long <: (c2,c1)
-    (jpp,_)     <- full_adder 16 cad next_pp
+    (_,jpp)     <- adder cad next_pp
     jmpdest'    <- jump_on_ret <: (mem_nap,jpp)
     jump_on_val <- is_long |: ins_call
     jmpdest     <- jump_on_val <: (val,jmpdest')
