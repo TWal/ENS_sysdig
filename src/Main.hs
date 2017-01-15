@@ -46,11 +46,12 @@ aluNetlist :: Netlist
 aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
                         renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],
                [])
-  where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2
+  where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2 imm
         bin = inputV "bin" 1
         func = inputV "func" 4
         op1 = inputV "op1" 16
         op2 = inputV "op2" 16
+        imm = inputV "imm" 4
         flagstmp = flag_system fen (z,c,p,o,s)
 
 -------------------------------------------------------------------------------
@@ -124,5 +125,11 @@ memory_system_flag_test = (regs, [nap], ["sp_temp"])
        addr  = inputV "addr" 16
        (_,nap,spwe,spw,_) = memory_system fun en dt addr
 
+mult_test :: Netlist
+mult_test = ([],[res],[])
+  where res = umul a b
+        a   = inputV "a" 16
+        b   = inputV "b" 16
+
 main :: IO ()
-main = putNetlist memory_system_flag_test
+main = putNetlist aluNetlist

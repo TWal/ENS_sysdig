@@ -7,17 +7,26 @@ import Debug.Trace
 import Data.Int
 
 -- in all ALU c , o ,s , ... designate flags
-alu :: Var -> Var -> Var -> Var -> (Var,Var,(Var,Var,Var,Var,Var),Var)
-alu bin func op1 op2 = runVM (make_gen "alu") $ do
-  binres <- return $ binGlob func op1 op2
-  unres <- return $ unGlob func op1 op2
-  (c,o,out) <- bin <::: (binres,unres)
-  flags <- return $ setFlags c o out
+alu :: Var -> Var -> Var -> Var -> Var -> (Var,Var,(Var,Var,Var,Var,Var),Var)
+alu bin func dest src imm = runVM (make_gen "alu") $ do
   func3 <- func @: 3
+  func2 <- func @: 2
   nfunc3 <- notv func3
+  isshift <- nfunc3 &: func2
+  shiftres' <- simpleShift bin func dest src imm
+  zero <- constV 1 0
+  let shiftres = (zero,zero,shiftres')
+
+  binres <-return $ binGlob func dest src
+
+  unres <- return $ unGlob func dest
+  binunres <- bin <::: (binres,unres)
+
+  (c,o,out) <- isshift <:::(shiftres,binunres)
+
+  flags <- return $ setFlags c o out
   wen <- nfunc3 |: bin
   movsf <- select4_bit 1 func
-
   ismovs <- movsf &: bin
   fen <- notv ismovs
   return (out,wen,flags,fen)
@@ -170,55 +179,75 @@ shiftr inp val fstbit = do
   res1 <- shiftrInt 1 v1 res2 fstbit
   shiftrInt 0 v0 res1 fstbit
 
-simpleShift :: Var -> Var -> Var -> VarMonad Var
-simpleShift bincode a b = do
-  highb <- b !!: (4,15)
-  ishigh <- nap_or highb
-  a15 <- a @: 15
+simpleShift :: Var -> Var -> Var -> Var -> Var -> VarMonad Var
+simpleShift bin bincode dest src imm = do
+  highb <- src !!: (4,15)
+  lowb <- src !!: (0,3)
+  realsrc <- bin <:(lowb,imm)
+  ishigh' <- nap_or highb
+  ishigh <- ishigh' &: bin
+  d15 <- dest @: 15
   isleft <- bincode @:0
   isari <- bincode @:1
   zero <- constV 1 0
-  fstb <- isari <: (a15,zero)
+  fstb <- isari <: (d15,zero)
   resifhigh <- makeArray 16 fstb
-  sl <- shiftl a b
-  sr <- shiftr a b fstb
+  sl <- shiftl dest realsrc
+  sr <- shiftr dest realsrc fstb
   resiflow <- isleft <:(sl,sr)
   ishigh <: (resifhigh,resiflow)
 
+
+------------------------------MULT------------------------------------
+
+mult :: Int8 -> Var -> Var -> VarMonad Var
+-- mutiply op with the n lower bits of fact and return a register of n +16 bits
+
+
+mult 1 op fact = do
+  bit <- fact @: 0
+  zero <- constV 1 0
+  zerores <- constV 16 0
+  res <- bit <: (op,zerores)
+  zero -: res
+
+
+mult n op fact = do
+  bit <- fact @: (n-1)
+  zeron <- constV (n-1) 0
+  zerores <- constV (n+16-1) 0
+  preres <- mult (n-1) op fact
+  addvalif1 <- op -: zeron
+  addvalue <- bit <: (addvalif1,zerores)
+  (littleres,c) <- full_adder (n+16-1) preres addvalue
+  c -: littleres
+
+umul op fact = runVM(make_gen "umul") $ do
+  mult 16 op fact
 
 ------------------------------FUSION CODE-----------------------------
 
 binGlob :: Var -> Var -> Var -> (Var,Var,Var)
 binGlob code op1 op2 = runVM (make_gen "binGlob") $ do
   binres <- return $ simpleBin code op1 op2
-  shiftres <- simpleShift code op1 op2
   code1 <- code @: 1
   code2 <- code @: 2
   code3 <- code @: 3
-  code0 <- code @: 0
-  isbin <- return code3
   zero <- constV 1 0
-  binshiftres <- isbin <::: (binres,(zero,zero,shiftres))
   ismovtmp <- code1 |: code2
   nismov <- ismovtmp |: code3
   ismov <- notv nismov
-  ismov <::: ((zero,zero,op1),binshiftres)
+  ismov <::: ((zero,zero,op1),binres)
 
 
-unGlob :: Var -> Var -> Var -> (Var,Var,Var)
-unGlob code op1 op2 = runVM (make_gen "unGlob") $ do
-  simpleunres <- return $ simpleUn code op1
-  shiftres <- simpleShift code op1 op2
-  code1 <- code @: 1
-  code2 <- code @: 2
+unGlob :: Var -> Var -> (Var,Var,Var)
+unGlob code op = runVM (make_gen "unGlob") $ do
+  simpleunres <- return $ simpleUn code op
   code3 <- code @: 3
-  code0 <- code @: 0
-  isshift <- return code2
   zero <- constV 1 0
-  simpleres <- isshift <:::((zero,zero,shiftres),simpleunres)
   isnotSimple <- return code3
   prout <- constV 16 0
-  isnotSimple <:::((zero,zero,prout),simpleres)
+  isnotSimple <:::((zero,zero,prout),simpleunres)
 
 setFlags :: Var -> Var -> Var -> (Var,Var,Var,Var,Var)
 setFlags c o out = runVM (make_gen "setFlags") $ do
