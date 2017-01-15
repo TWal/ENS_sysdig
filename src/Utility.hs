@@ -61,6 +61,46 @@ full_adder n x y = do
     res <- r -: r'
     return (res,c)
 
+adderInt :: Int8 -> Var -> Var -> VarMonad (Var,Var)
+adderInt 1 xorxy andxy = do
+  xorb <- xorxy @: 0
+  andb <- andxy @: 0
+  return (andb,xorb)
+
+
+adderInt n xorxy andxy = do
+  xorb <- xorxy @: (n-1)
+  andb <- andxy @: (n-1)
+  (c,low) <- adderInt (n-1) xorxy andxy
+  co' <- c &: xorb
+  co <- co' |: andb
+  outb <- c ^: xorb
+  out <- outb -: low
+  return (co,out)
+
+adder :: Var -> Var -> VarMonad (Var,Var)
+adder x y = do
+  xorxy <- x ^: y
+  andxy <- x &: y
+  adderInt (size x) xorxy andxy
+
+oneadderInt :: Int8 -> Var -> VarMonad (Var,Var)
+oneadderInt 1 x  = do
+  xb <- x @: 0
+  xor <- notv xb
+  return (xb,xor)
+
+oneadderInt n x = do
+  xb <- x @: (n-1)
+  (c,low) <- oneadderInt (n-1) x
+  outb <- xb ^: c
+  co <- xb &: c
+  out <- outb -: low
+  return (co ,out)
+
+oneadder :: Var -> VarMonad (Var,Var)
+oneadder x = oneadderInt (size x) x
+
 long_bin :: (Var -> Var -> VarMonad Var) -> [Var] -> VarMonad Var
 long_bin b [] = fail "long_bin on empty list"
 long_bin b l  = foldM b (head l) $ tail l
