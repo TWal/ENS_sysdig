@@ -4,7 +4,6 @@ import Data.Int
 import Data.List
 import qualified Control.Monad.Trans.State.Strict as S
 import qualified Control.Monad as M
-import qualified Debug.Trace as T
 
 -- A variable is a size and a computing tree
 -- The string uniquely identify the var
@@ -128,9 +127,10 @@ remove_double secure l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_dou
 writeNetlist :: [Var] -> [Var] -> [String] -> String
 writeNetlist cmps vs other_outputs =
     let outputs = map label vs in
-    let filter = remove_double outputs in
+    let filter = remove_double $ map label $ vs ++ cmps in
+    -- let filter = id in
     let usedv = filter $ cmps ++ vs in
-    let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) $ usedv in
+    let (_,inputs,vars,eqs) = foldl (flip rdfs) ([],[],[],[]) usedv in
        "INPUT "    ++ sepBy ", " id       inputs
     ++ "\nOUTPUT " ++ sepBy ", " id       (outputs ++ other_outputs)
     ++ "\nVAR "    ++ sepBy ", " show_var vars
@@ -199,7 +199,7 @@ input :: String -> Int8 -> VarMonad Var
 input l s = return (l,s,Einput)
 
 copy :: Var -> VarMonad Var
-copy (_,s,t) = create (s,t)
+copy v = create (size v,Earg v)
 
 reg :: Var -> VarMonad Var
 reg v = create (size v, Ereg $ label v)
@@ -209,31 +209,31 @@ notv v = create (size v, Enot v)
 
 (&:) :: Var -> Var -> VarMonad Var
 v1 &: v2 = if n1 == n2 then create (n1, Eand v1 v2)
-           else fail "Anding differently sized variables"
+           else fail $ "Anding differently sized variables " ++ label v1 ++ " and " ++ label v2
  where n1 = size v1
        n2 = size v2
 
 (|:) :: Var -> Var -> VarMonad Var
 v1 |: v2 = if n1 == n2 then create (n1, Eor v1 v2)
-           else fail "Oring differently sized variables"
+           else fail $ "Oring differently sized variables " ++ label v1 ++ " and " ++ label v2
  where n1 = size v1
        n2 = size v2
 
 (^:) :: Var -> Var -> VarMonad Var
 v1 ^: v2 = if n1 == n2 then create (n1, Exor v1 v2)
-           else fail "Xoring differently sized variables"
+           else fail $ "Xoring differently sized variables " ++ label v1 ++ " and " ++ label v2
  where n1 = size v1
        n2 = size v2
 
 (!:) :: Var -> Var -> VarMonad Var
 v1 !: v2 = if n1 == n2 then create (n1, Enand v1 v2)
-           else fail "Nanding differently sized variables"
+           else fail $ "Nanding differently sized variables " ++ label v1 ++ " and " ++ label v2
  where n1 = size v1
        n2 = size v2
 
 (<:) :: Var -> (Var, Var) -> VarMonad Var
 v1 <: (v2,v3) = if n1 /= 1 then fail "Muxing on nap"
-              else if n2 /= n3 then fail "Muxing two differently sized variables"
+              else if n2 /= n3 then fail $ "Muxing two differently sized variables when selecting " ++ label v2 ++ " and " ++ label v3
               else create (n2, Emux v1 v2 v3)
  where n1 = size v1
        n2 = size v2
@@ -254,7 +254,8 @@ v !!: (i1,i2) = if i1 > i2 then fail "Invalid range for splice"
                 else create (i2 - i1 + 1, Eslice i1 i2 v)
 
 (@:) :: Var -> Int8 -> VarMonad Var
-v @: i = if i >= size v then fail "Select indice too big"
+v @: i = if i >= size v then fail $ "Select indice too big for " ++ label v
+                                    ++ " : " ++ show i ++ " >= " ++ (show $ size v)
          else create (1, Eselect i v)
 
 constV :: Int8 -> Int -> VarMonad Var
