@@ -246,8 +246,12 @@ unGlob code op = runVM (make_gen "unGlob") $ do
   code3 <- code @: 3
   zero <- constV 1 0
   isnotSimple <- return code3
-  prout <- constV 16 0
-  isnotSimple <:::((zero,zero,prout),simpleunres)
+
+  zero16 <- constV 16 0
+  initlo <- return $ get_register "lo";
+  {-mulres <- mul code op initlo-}
+  isnotSimple <:::((zero,zero,zero16),simpleunres)
+
 
 setFlags :: Var -> Var -> Var -> (Var,Var,Var,Var,Var)
 setFlags c o out = runVM (make_gen "setFlags") $ do
