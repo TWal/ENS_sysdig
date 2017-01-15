@@ -101,6 +101,33 @@ oneadderInt n x = do
 oneadder :: Var -> VarMonad (Var,Var)
 oneadder x = oneadderInt (size x) x
 
+
+subberInt :: Int8 -> Var -> Var -> VarMonad (Var,Var)
+subberInt 1 xorxy andxy = do
+  xorb <- xorxy @: 0
+  andb <- andxy @: 0
+  outb <- notv xorb
+  co <- xorb |: andb
+  return (co,outb)
+
+
+subberInt n xorxy andxy = do
+  xorb <- xorxy @: (n-1)
+  andb <- andxy @: (n-1)
+  (c,low) <- subberInt (n-1) xorxy andxy
+  co' <- c &: xorb
+  co <- co' |: andb
+  outb <- c ^: xorb
+  out <- outb -: low
+  return (co,out)
+
+subber :: Var -> Var -> VarMonad (Var,Var)
+subber x y = do
+  y' <- notv y
+  xorxy <- x ^: y'
+  andxy <- x &: y'
+  subberInt (size x) xorxy andxy
+
 long_bin :: (Var -> Var -> VarMonad Var) -> [Var] -> VarMonad Var
 long_bin b [] = fail "long_bin on empty list"
 long_bin b l  = foldM b (head l) $ tail l
