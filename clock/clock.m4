@@ -73,6 +73,12 @@ subtract:
 endYears:
     mov r5 r0
     mov r6 r1
+    limm 41 r5
+    wrl a3 r5 0
+    wrw r2 r5 1
+    wrw r3 r5 3
+    wrw r4 r5 5
+
 
 #r0 = low 16 bits of timestamp
 #r1 = high 16 bits of timestamp
@@ -87,7 +93,7 @@ endYears:
 #a3 = isLeap then the number of the month
 #fp = the year
 
-    jandz a3 a3isNotLeap2
+    jandz a3 a3 isNotLeap2
 isLeap2:
     limm 59904 a0
     limm 36 r2
@@ -155,11 +161,13 @@ endDays:
     mov r0 lo
     mov r1 hi
     limm 3600 r2
-    divu r2
+    #divu r2
+    call divu_
     mov hi a1
     limm 0 hi
     limm 60 r2
-    divu r2
+    #divu r2
+    call divu_
     mov hi a0
 
 # years: fp
@@ -168,3 +176,138 @@ endDays:
 # hour: a1
 # minute : a0
 # seconds : lo
+
+    mov fp r0 #year
+    mov a3 r1 #month
+    mov a2 r2 #day
+    mov a1 r3 #hour
+    mov a0 r4 #minute
+    mov lo r5 #seconds
+    limm 0 a0
+    limm 24 a1
+    limm 12 a2
+    rdw a0 r6 8 #low bits of timestamp
+
+#r0: years
+#r1: months
+#r2: days
+#r3: hours
+#r4: minutes
+#r5: seconds
+#r6: last timestamp low bits
+# a0: 0
+# a1: 24
+# a2: 12
+# a3: tmp
+
+#On devrait tester ici si ça marche déjà car j'y mets pas ma main à couper (même si je suis pas prêt à payer une bouteille de champagne si ça marche)
+#la convention est ici que tout commence à 0
+#TODO : verifier que c'est cohérent avec le code du dessus
+
+#RAM: 17+i = nb of day in month i
+#     42+2i = year modulo [4, 100, 400][i]
+#     41   = isLeap
+
+define(SETFEB,
+    rdbu a0 rt 41
+    limm 28 a3
+    add rt a3
+    wrl a3 a0 18
+)
+define(SETMONTH, 
+    limm $1 a3
+    wrl a3 a0 $2
+)
+    SETMONTH(31, 17)
+    SETFEB()
+    SETMONTH(31, 19)
+    SETMONTH(30, 20)
+    SETMONTH(31, 21)
+    SETMONTH(30, 22)
+    SETMONTH(31, 23)
+    SETMONTH(31, 24)
+    SETMONTH(30, 25)
+    SETMONTH(31, 26)
+    SETMONTH(30, 27)
+    SETMONTH(31, 28)
+
+    mov sp fp
+
+mainLoop:
+    call waitChange
+#seconds
+    incr r5
+    jneq60 r5 a0 mainLoop
+    limm 0 r5
+#minutes
+    incr r4
+    jneq60 r4 a0 mainLoop
+    limm 0 r4
+#hours
+    incr r3
+    jneq r3 a1 mainLoop
+    limm 0 r3
+#days
+    incr r2
+    limm 17 a3
+    add a3 r1
+    rdw a3 a3
+    jneq r2 a3 mainLoop
+    limm 0 r2
+#months
+    incr r1
+    jneq r1 a2 mainLoop
+    limm 0 r1
+#years
+    incr r0
+    jmp mainLoop
+#ici on utilise que r[1-5] sont à 0
+    rdw a0 r1 42
+    rdw a0 r2 44
+    rdw a0 r3 46
+
+    incr r1
+    limm 4 a3
+    jneq r1 a3 leap4_2
+    limm 0 r1
+    limm 1 rt
+leap4_2:
+    incr r2
+    limm 100 a3
+    jneq r2 a3 leap100_2
+    limm 0 r2
+    limm 0 rt
+leap100_2:
+    incr r3
+    limm 400 a3
+    jneq r3 a3 leap400_2
+    limm 0 r3
+    limm 1 rt
+leap400_2:
+    wrw a0 r1 42
+    wrw a0 r2 44
+    wrw a0 r3 46
+    wrl a0 rt 41
+    SETFEB()
+    jmp mainLoop
+
+
+waitChange:
+    rdw rt a0 8
+    jeq rt r3 waitChange
+    mov rt r3
+    ret
+
+divu_:
+    limm 0 r5
+    limm 0 r6
+divuLoop:
+    sub r2 lo
+    subc r5 hi
+    jc divuEndLoop
+    incr r6
+    jmp divuLoop
+divuEndLoop:
+    mov r6 hi
+    add r2 lo
+    ret

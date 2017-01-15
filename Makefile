@@ -1,4 +1,4 @@
-.PHONY : all clean mrproper spec
+.PHONY : all clean mrproper spec clock
 
 all: NetCompil/bin/netCompil
 	cabal build
@@ -19,3 +19,6 @@ mrproper: clean
 
 spec: Specification/spec.tex
 	make -C Specification
+
+clock:
+	make -C clock
