@@ -40,7 +40,7 @@ struct ShortI : public Instruction
     }
 };
 
-static_assert(sizeof(short) == 2);
+static_assert(sizeof(short) == 2,"short not size 2");
 
 struct LongI : public Instruction
 {
