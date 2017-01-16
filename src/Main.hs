@@ -16,7 +16,7 @@ import GPU
 -- On Mux assumes 1 -> first choice
 
 computer :: Netlist
-computer = ([pp, gpu_dep] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_c, mem_data_c, mem_ret_c,renameV "alures" alu_res] ++ dps, ["d_op", "d_func", "d_src", "d_dest", "d_val"])
+computer = ([pp, gpu_dep] ++ dps ++ flag_temp ++ to_compute, [], [])
  where read_reg_d         = dummy "read_reg"         16
        write_reg_d        = dummy "write_reg"        16
        mem_reading_d      = dummy "mem_reading"       1
