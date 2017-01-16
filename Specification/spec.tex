@@ -145,7 +145,8 @@ Les codes sont représentés sur 4 bits. Les instructions courtes commencent par
   champs Val doit avoir ses 2 bits de poids faibles à 0 et contient instr sur
   ses bits de 2 à 7 et modif sur ses bits de 8 à 15 (voir section sur le gpu.)
   Le champs \verb!src! contient le registre qui remplira le champs \verb!data!
-  de l'instruction GPU.
+  de l'instruction GPU. À cause d'un problème de syncronisation, il est interdit
+  de mettre deux instructions \verb!gpu! d'affilée sinon la deuxième écrase la première.
 \end{itemize}
 
 \section{Codes fonctions}
