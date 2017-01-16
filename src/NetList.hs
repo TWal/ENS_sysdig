@@ -33,6 +33,7 @@ make_gen :: String -> [String]
 make_gen p = map (\c -> "__" ++ p ++ "_" ++ show c) [1..]
 
 type VarMonad = S.StateT [String] (Either String)
+-- Use the monad to generate a new label
 nlabel :: VarMonad String
 nlabel = do
     c <- S.get
@@ -47,6 +48,8 @@ is_dummy :: Var -> Bool
 is_dummy (_,_,Edummy) = True
 is_dummy _            = False
 
+-- Test the equality of two variable, with a limit in the depth of the explored
+-- tree
 test_var_eq :: Int -> Var -> Var -> Bool
 test_var_eq 0 _ _ = False
 test_var_eq n (l1,s1,tv1) (l2,s2,tv2) = if l1 == l2 then True  else
@@ -76,6 +79,7 @@ fromv v = EqVar v
 instance Eq EqVar where
     (EqVar x) == (EqVar y) = test_var_eq 10000 x y
 
+-- Simplify the forest of expressions by merging variable with the same computation tree
 remove_double :: [String] -> [Var] -> [Var]
 remove_double secure l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_double' v mp in (nv : l, nmp)) ([],[]) l
   where remove_double' :: Var -> [(EqVar,Var)] -> (Var,[(EqVar,Var)])
@@ -124,6 +128,11 @@ remove_double secure l = fst $ foldl (\(l,mp) -> \v -> let (nv,nmp) = remove_dou
                 Eselect i v -> let (v',mp') = remove_double' v mp in (Eselect i v', mp')
 
 
+-- Generate the NetList. The first list is variables we want to compute even if
+-- they aren't in the output, and the second one is the variables of the output.
+-- The only variables that will appear in the output are the one necessary
+-- for computing these ones. The Third list is names of variables we want to
+-- output (for debugging purposes for example)
 writeNetlist :: [Var] -> [Var] -> [String] -> String
 writeNetlist cmps vs other_outputs =
     let outputs = map label vs in
@@ -182,55 +191,62 @@ writeNetlist cmps vs other_outputs =
        show_var (l,s) = if s == 1 then l
                         else l ++ " : " ++ show s
 
+-- Run the monad with a special name generation.
 runVM :: [String] -> VarMonad a -> a
 runVM g m = case S.evalStateT m g of
     Right x -> x
     Left  e -> error e
 
-singleton :: Var -> VarMonad [Var]
-singleton v = return [v]
-outputs :: [VarMonad Var] -> VarMonad [Var]
-outputs vs = M.sequence vs
-
+-- Create a new variable given its size and tree (basicaly a wrapper over nlabel)
 create :: (Int8,TVar) -> VarMonad Var
 create (s,t) = nlabel >>= \l -> return (l,s,t)
 
+-- Create an input variable with a given name.
 input :: String -> Int8 -> VarMonad Var
 input l s = return (l,s,Einput)
 
+-- Create a new variable, which in the netlist will be the copy of the one in
+-- parameter.
 copy :: Var -> VarMonad Var
 copy v = create (size v,Earg v)
 
+-- REG
 reg :: Var -> VarMonad Var
 reg v = create (size v, Ereg $ label v)
 
+-- NOT
 notv :: Var -> VarMonad Var
 notv v = create (size v, Enot v)
 
+-- AND
 (&:) :: Var -> Var -> VarMonad Var
 v1 &: v2 = if n1 == n2 then create (n1, Eand v1 v2)
            else fail $ "Anding differently sized variables " ++ label v1 ++ " and " ++ label v2
  where n1 = size v1
        n2 = size v2
 
+-- OR
 (|:) :: Var -> Var -> VarMonad Var
 v1 |: v2 = if n1 == n2 then create (n1, Eor v1 v2)
            else fail $ "Oring differently sized variables " ++ label v1 ++ " and " ++ label v2
  where n1 = size v1
        n2 = size v2
 
+-- XOR
 (^:) :: Var -> Var -> VarMonad Var
 v1 ^: v2 = if n1 == n2 then create (n1, Exor v1 v2)
            else fail $ "Xoring differently sized variables " ++ label v1 ++ " and " ++ label v2
  where n1 = size v1
        n2 = size v2
 
+-- NAND
 (!:) :: Var -> Var -> VarMonad Var
 v1 !: v2 = if n1 == n2 then create (n1, Enand v1 v2)
            else fail $ "Nanding differently sized variables " ++ label v1 ++ " and " ++ label v2
  where n1 = size v1
        n2 = size v2
-
+-- MUX
+-- if v1 then v2 else v3
 (<:) :: Var -> (Var, Var) -> VarMonad Var
 v1 <: (v2,v3) = if n1 /= 1 then fail "Muxing on nap"
               else if n2 /= n3 then fail $ "Muxing two differently sized variables when selecting " ++ label v2 ++ " and " ++ label v3
@@ -245,14 +261,19 @@ rom i1 i2 v = create (i2, Erom i1 i2 v)
 ram :: Int8 -> Int8 -> Var -> Var -> Var -> Var -> VarMonad Var
 ram i1 i2 v1 v2 v3 v4 = create (i2, Eram i1 i2 v1 v2 v3 v4)
 
+-- CONCAT
+-- v1 is MSB and v2 the LSB
 (-:) :: Var -> Var -> VarMonad Var
 v1 -: v2 = create (size v1 + size v2, Econcat v1 v2)
 
+-- SPLICE
+-- Both bounds are included
 (!!:) :: Var -> (Int8,Int8) -> VarMonad Var
 v !!: (i1,i2) = if i1 > i2 then fail "Invalid range for splice"
                 else if i2 >= size v then fail $ "Too big bound on splice on " ++ label v
                 else create (i2 - i1 + 1, Eslice i1 i2 v)
 
+-- SELECT
 (@:) :: Var -> Int8 -> VarMonad Var
 v @: i = if i >= size v then fail $ "Select indice too big for " ++ label v
                                     ++ " : " ++ show i ++ " >= " ++ (show $ size v)
@@ -261,10 +282,13 @@ v @: i = if i >= size v then fail $ "Select indice too big for " ++ label v
 constV :: Int8 -> Int -> VarMonad Var
 constV s i = create (s, Econst i)
 
+-- Creates a dummy variable, used to circumvent some limitations of the current
+-- system
 dummy :: String -> Int8 -> Var
 dummy nm s = (nm, s, Edummy)
 
 type Netlist = ([Var],[Var],[String]) -- to be calculated variables,out varables names, out names for debug
 
+-- A wrapper to output a netlist to the standart output
 putNetlist :: Netlist -> IO ()
 putNetlist (a,b,c) = putStrLn $ writeNetlist a b c
