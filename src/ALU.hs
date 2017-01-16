@@ -257,7 +257,7 @@ binGlob code dest src = runVM (make_gen "binGlob") $ do
   ismovtmp <- code1 |: code2
   nismov <- ismovtmp |: code3
   ismov <- notv nismov
-  ismov <::: ((zero,zero,dest),binres)
+  ismov <::: ((zero,zero,src),binres)
 
 
 unGlob :: Var -> Var -> ((Var,Var,Var),(Var,Var,Var,Var))
