@@ -201,7 +201,8 @@ endDays:
 # a2: 12
 # a3: tmp
 
-#On devrait tester ici si ça marche déjà car j'y mets pas ma main à couper (même si je suis pas prêt à payer une bouteille de champagne si ça marche)
+# Up to here, it works !
+
 #la convention est ici que tout commence à 0
 #TODO : verifier que c'est cohérent avec le code du dessus
 
@@ -298,9 +299,9 @@ leap400_2:
 
 
 waitChange:
-    rdw rt a0 8
-    jeq rt r3 waitChange
-    mov rt r3
+    rdw a0 rt 8
+    jeq rt r6 waitChange
+    mov rt r6
     ret
 
 divu_:
