@@ -4,6 +4,8 @@
 
 Le simulateur est dans un dossier séparé `git submodule --init` pour le créer et `git submodule update` pour le mettre à jour.
 
+Son repo est à l'adresse : [https://git.eleves.ens.fr/perami/NetListCppCompiler](https://git.eleves.ens.fr/perami/NetListCppCompiler)
+
 Son readme est bien plus détaillé.
 
 ## Assembleur
