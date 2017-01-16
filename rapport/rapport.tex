@@ -1,0 +1,92 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+\usepackage[left=3cm, right=3cm, bottom=2cm, top=2cm]{geometry}
+\usepackage{fixltx2e}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{stmaryrd}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[object=vectorian]{pgfornament}
+\usetikzlibrary{shapes.geometric,calc}
+\usepackage{algorithm2e}
+\newcommand{\sep}{\begin{center}
+        \pgfornament[width=0.25\linewidth]{84}
+\end{center}}
+\newcommand{\seg}[2]{\llbracket #1, #2 \rrbracket}
+
+\MakeRobust{\overrightarrow}
+
+\pagestyle{fancy}
+\lhead{Devoir maison 1}
+\rhead{Luc Chabassier}
+
+\newcommand{\vc}[1]{\overrightarrow{#1}}
+\newcommand{\A}{\mathscr{A}}
+\newcommand{\F}{\mathscr{F}}
+\newcommand{\B}{\mathscr{B}}
+\newcommand{\parts}{\mathscr{P}}
+\newcommand{\ntoi}{{n\rightarrow\infty}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Q}{\mathbb{Q}}
+
+\title{Processeur en NetList\\--- Système Digital ---}
+\author{Luc Chabassier \and Thibaut Pérami \and Théophile Wallez}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+L'archtecture générale du projet est la suivante. Dans le dossier \texttt{src}
+se trouve un code Haskell qui, une fois compilé et exécuté, écrit la NetList.
+
+La NetList est ensuite compilé vers du \emph{c++} à l'aide du compilateur de
+NetList situé dans le module git \texttt{NetCompil}. Le fichier doit alors être
+compilé avec \texttt{g++} (en mode \emph{c++11}, et avec la \emph{sfml} comme
+dépendance).
+
+Le fichier ainsi obtenu peut alors être exécuté. Le contenu de la rom est celui
+d'un fichier externe, dont le chemin est passé en ligne de commande. Le contenu
+de ce fichier doit être celui d'une suite d'intruction telle que spécifié dans
+\texttt{Specification}.
+
+Afin de faciliter la génération de ce fichier, un assembleur est implémenté en
+\emph{c++} dans le dossier \texttt{asm}.
+
+Le code assembleur qui contient le code de l'horloge est dans \texttt{clock}.
+Le code lui-même n'est pas rédigé en assembleur simple, mais contient des
+macros \emph{m4}.
+
+\section{La génération de NetList}
+
+\section{Le processeur}
+
+\section{Le simulateur}
+
+\section{L'assembleur}
+
+\section{L'horloge}
+L'assembleur lit le timestamp dans la RAM.
+
+Pour convertir en année, mois, jour, ... on fait des soustractions
+successives au timestamp.
+
+Pour les années bissextilles, on retient l'année courante modulo 4, 100 et
+400
+
+Pour le décompte des secondes, on attends le changement de seconde en
+regardant quand les 16 bits de poids faible du timestamp changent.
+
+Pour gérer les années bissextilles, on stocke en RAM le nombre de jours
+dans chaque mois.
+
+Lors d'un changement d'année, on met à jour le nombre de jours de février
+
+\end{document}
+
