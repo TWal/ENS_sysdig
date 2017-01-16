@@ -201,6 +201,23 @@ endDays:
 # a2: 12
 # a3: tmp
 
+# Write date to GPU
+# NOP are needed between GPU instructions
+gpu wy  r0
+mov a0 a0
+gpu wmo r1
+mov a0 a0
+gpu wd  r2
+mov a0 a0
+gpu wwd a0 # We haven't computed the day of the week
+mov a0 a0
+gpu wh  r3
+mov a0 a0
+gpu wmi r4
+mov a0 a0
+gpu ws  r5
+mov a0 a0
+
 # Up to here, it works !
 
 #la convention est ici que tout commence à 0
@@ -239,29 +256,40 @@ mainLoop:
     call waitChange
 #seconds
     incr r5
+    gpu ws r5
     jneq60 r5 a0 mainLoop
     limm 0 r5
+    gpu ws r5
 #minutes
     incr r4
+    gpu wmi r4
     jneq60 r4 a0 mainLoop
     limm 0 r4
+    gpu wmi r4
 #hours
     incr r3
+    gpu wh r3
     jneq r3 a1 mainLoop
     limm 0 r3
+    gpu wh r3
 #days
     incr r2
     limm 17 a3
     add a3 r1
     rdw a3 a3
+    gpu wd r2
     jneq r2 a3 mainLoop
     limm 0 r2
+    gpu wd r2
 #months
     incr r1
+    gpu wmo r1
     jneq r1 a2 mainLoop
     limm 0 r1
+    gpu wmo r1
 #years
     incr r0
+    gpu wy r0
     jmp mainLoop
 #ici on utilise que r[1-5] sont à 0
     rdw a0 r1 42
