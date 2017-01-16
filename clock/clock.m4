@@ -218,11 +218,6 @@ mov a0 a0
 gpu ws  r5
 mov a0 a0
 
-# Up to here, it works !
-
-#la convention est ici que tout commence à 0
-#TODO : verifier que c'est cohérent avec le code du dessus
-
 #RAM: 17+i = nb of day in month i
 #     42+2i = year modulo [4, 100, 400][i]
 #     41   = isLeap
@@ -231,24 +226,24 @@ define(SETFEB,
     rdbu a0 rt 41
     limm 28 a3
     add rt a3
-    wrl a3 a0 18
+    wrl a3 a0 19
 )
 define(SETMONTH,
     limm $1 a3
     wrl a3 a0 $2
 )
-    SETMONTH(31, 17)
+    SETMONTH(31, 18)
     SETFEB()
-    SETMONTH(31, 19)
-    SETMONTH(30, 20)
-    SETMONTH(31, 21)
-    SETMONTH(30, 22)
-    SETMONTH(31, 23)
+    SETMONTH(31, 20)
+    SETMONTH(30, 21)
+    SETMONTH(31, 22)
+    SETMONTH(30, 23)
     SETMONTH(31, 24)
-    SETMONTH(30, 25)
-    SETMONTH(31, 26)
-    SETMONTH(30, 27)
-    SETMONTH(31, 28)
+    SETMONTH(31, 25)
+    SETMONTH(30, 26)
+    SETMONTH(31, 27)
+    SETMONTH(30, 28)
+    SETMONTH(31, 29)
 
     mov sp fp
 
@@ -262,7 +257,6 @@ mainLoop:
     gpu ws r5
 #minutes
     incr r4
-    gpu wmi r4
     jneq60 r4 a0 mainLoop
     limm 0 r4
     gpu wmi r4
@@ -275,17 +269,17 @@ mainLoop:
 #days
     incr r2
     limm 17 a3
-    add a3 r1
-    rdw a3 a3
+    add r1 a3
+    rdbu a3 a3
     gpu wd r2
-    jneq r2 a3 mainLoop
-    limm 0 r2
+    jge r2 a3 mainLoop
+    limm 1 r2
     gpu wd r2
 #months
     incr r1
     gpu wmo r1
     jneq r1 a2 mainLoop
-    limm 0 r1
+    limm 1 r1
     gpu wmo r1
 #years
     incr r0
