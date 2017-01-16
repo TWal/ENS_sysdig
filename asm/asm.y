@@ -210,7 +210,7 @@ longInstr:
     |   LINS_JTEST REGISTER REGISTER LABEL
         {
             auto tmp = new LongI;
-            tmp->opcode = 10;
+            tmp->opcode = 9;
             tmp->dest = $3;
             tmp->src = $2;
             tmp->func = $1;
