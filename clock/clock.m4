@@ -201,23 +201,6 @@ endDays:
 # a2: 12
 # a3: tmp
 
-# Write date to GPU
-# NOP are needed between GPU instructions
-gpu wy  r0
-mov a0 a0
-gpu wmo r1
-mov a0 a0
-gpu wd  r2
-mov a0 a0
-gpu wwd a0 # We haven't computed the day of the week
-mov a0 a0
-gpu wh  r3
-mov a0 a0
-gpu wmi r4
-mov a0 a0
-gpu ws  r5
-mov a0 a0
-
 #RAM: 17+i = nb of day in month i
 #     42+2i = year modulo [4, 100, 400][i]
 #     41   = isLeap
@@ -247,44 +230,53 @@ define(SETMONTH,
 
     mov sp fp
 
+updateYears:
+    gpu wy r0
+    mov rt rt
+updateMonths:
+    gpu wmo r1
+    mov rt rt
+updateDays:
+    gpu wd r2
+    mov rt rt
+    gpu wwd a0 # We haven't computed the day of the week
+    mov rt rt
+updateHours:
+    gpu wh r3
+    mov rt rt
+updateMinutes:
+    gpu wmi r4
+    mov rt rt
+updateSeconds:
+    gpu ws r5
 mainLoop:
     call waitChange
 #seconds
     incr r5
-    gpu ws r5
-    jneq60 r5 a0 mainLoop
+    jneq60 r5 a0 updateSeconds
     limm 0 r5
-    gpu ws r5
 #minutes
     incr r4
-    jneq60 r4 a0 mainLoop
+    jneq60 r4 a0 updateMinutes
     limm 0 r4
-    gpu wmi r4
 #hours
     incr r3
-    gpu wh r3
-    jneq r3 a1 mainLoop
+    jneq r3 a1 updateHours
     limm 0 r3
-    gpu wh r3
 #days
     incr r2
     limm 17 a3
     add r1 a3
     rdbu a3 a3
-    gpu wd r2
-    jge r2 a3 mainLoop
+    jge r2 a3 updateDays
     limm 1 r2
-    gpu wd r2
 #months
     incr r1
-    gpu wmo r1
-    jneq r1 a2 mainLoop
+    jneq r1 a2 updateMonths
     limm 1 r1
-    gpu wmo r1
 #years
     incr r0
-    gpu wy r0
-    jmp mainLoop
+    jmp updateYears
 #ici on utilise que r[1-5] sont à 0
     rdw a0 r1 42
     rdw a0 r2 44
