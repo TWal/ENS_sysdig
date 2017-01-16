@@ -7,7 +7,7 @@ proco:
 	cabal build
 	./run.sh > proco.net
 	NetCompil/bin/netCompil proco.net -o proco.cpp
-	g++ -O3 --std=c++14 proco.cpp -o proco
+	g++ -O3 --std=c++14 -lsfml-graphics -lsfml-window -lsfml-system proco.cpp -o proco
 
 NetCompil/bin/netCompil:
 	make -C NetCompil
