@@ -20,10 +20,18 @@ make_register w we name = (rr,rt)
  where rt = (name ++ "_temp",16,Emux we w rr)
        rr = (name,16,Ereg $ name ++ "_temp")
 
--- The register manager. Returns readrreg, readwreg, and the direct access
--- registers.
--- The returned value is : (readrreg, readwreg, list of variables to compute)
--- TODO : ^ outdated commentary, update it
+-- The register manager. Takes the following parameters :
+--    - readcmd          : the 4-bit name of the register we want to read.
+--    - writecmd         : the 4-bit name of the register we want to write to.
+--    - writewreg        : the 16-bit value to write in the register.
+--    - we               : enable the write.
+--    - {hi,lo,sp}{w,we} : 16-bit write and 1-bit write enable for the
+--                         registers hi,lo and sp, because they need to
+--                         be directly accessed.
+-- The returned value is the 16-bit value of the read register, the 16-bit
+-- value of the write register (which is thus read-write), and a list of
+-- variables which needs to be computed.
+-- 
 -- When contradictory write orders are given on direct access registers, the
 -- direct access one is selected.
 register_manager readcmd writecmd writewreg we
@@ -75,6 +83,7 @@ register_manager readcmd writecmd writewreg we
                sl <- s @: i
                sl <: (n2,n1)
 
+-- Provides direct read-only access to the register which literal name is given
 get_register :: String -> Var
 get_register n = (n,16,Ereg $ n ++ "_temp")
 

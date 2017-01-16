@@ -64,6 +64,8 @@ adderInt n xorxy andxy = do
   out <- outb -: low
   return (co,out)
 
+-- An adder of two variables of the same size. The first value returned is the
+-- rest of the addition and the second one the sum.
 adder :: Var -> Var -> VarMonad (Var,Var)
 adder x y =
   if size x /= size y then error "wrong size adder"
@@ -87,6 +89,8 @@ oneadderInt n x = do
   out <- outb -: low
   return (co ,out)
 
+-- An adder of a variable and 1. The first value returned is the rest of the
+-- addition and the second one the sum.
 oneadder :: Var -> VarMonad (Var,Var)
 oneadder x = oneadderInt (size x) x
 
@@ -121,6 +125,8 @@ subber x y =
   subberInt (size x) xorxy andxy
   
 
+-- Applies a binary operation between a list of variable (assumes the operation
+-- is associative).
 long_bin :: (Var -> Var -> VarMonad Var) -> [Var] -> VarMonad Var
 long_bin b [] = fail "long_bin on empty list"
 long_bin b l  = foldM b (head l) $ tail l
@@ -128,6 +134,8 @@ long_bin b l  = foldM b (head l) $ tail l
 long_or  = long_bin (|:)
 long_and = long_bin (&:)
 
+-- Applies a binary operation on the bits of a nap (assumes the operation is
+-- associative)
 nap_bin :: (Var -> Var -> VarMonad Var) -> Var -> VarMonad Var
 nap_bin b n = n @: 0 >>= \d -> foldM (\v -> \i -> n @: i >>= \v2 -> b v v2)
                                      d [1 .. (s-1)]
@@ -136,7 +144,10 @@ nap_bin b n = n @: 0 >>= \d -> foldM (\v -> \i -> n @: i >>= \v2 -> b v v2)
 nap_or = nap_bin (|:)
 nap_and = nap_bin (&:)
 
--- long_select2 long_select4
+-- Tests if an input var is the "same" as a number with a given function, and
+-- if the result (which must be a bit) yields 1, give the value of the
+-- associated variable in the list.
+-- The value returned is undefined if their is no match.
 long_select :: (Int8 -> Var -> VarMonad Var) -> Var -> [(Int8,Var)] -> VarMonad Var
 long_select f v [(_,rv)] = return rv
 long_select f v ((i,rv) : rvs) = do

@@ -4,6 +4,15 @@ import NetList
 import Utility
 import Registers
 
+-- The paramters are the memory function (4-bit nap), an enable bit, the data
+-- the write (if any) and the address to write to/read from.
+-- Returns :
+--   - reading : indicates if their has been a read operation (and thus if the
+--               result must be stored)
+--   - read_nap : the 16-bit value read
+--   - (esp,wsp) : if and what to write in the sp register, in case their has
+--                 been a stack operation.
+--   - ret : indicates if the instruction was a ret.
 memory_system fun en dt addr = runVM (make_gen "memory_system") $ do
     let sp = get_register "sp"
     fun0  <- fun @: 0
@@ -17,9 +26,9 @@ memory_system fun en dt addr = runVM (make_gen "memory_system") $ do
     c0_8  <- constV 8 0
     c0_1  <- constV 1 0
     cmp2  <- constV 16 65534 -- 2 complement
-    is_r  <- select2_bit 0 fun3 fun2
-    is_w  <- select2_bit 1 fun3 fun2
-    is_c  <- select2_bit 2 fun3 fun2
+    is_r  <- select2_bit 0 fun3 fun2 -- is the instruction a reading
+    is_w  <- select2_bit 1 fun3 fun2 -- is the instruction a writing
+    is_c  <- select2_bit 2 fun3 fun2 -- is the instruction a stack operation
 
     -- Handle sp
     ret  <- select4_bit 10 fun

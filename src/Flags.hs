@@ -5,6 +5,8 @@ import NetList
 -------------------------------------------------------------------------------
 ----------------------------- Flag code ---------------------------------------
 -------------------------------------------------------------------------------
+-- Get the code of a flag in a 4-bit nap (cf specification for the values of
+-- the codes) and returns the value of the associated flag.
 flag_code func = runVM (make_gen "flag_code") $ do
     let (z,c,p,o,s) = (get_flag "z", get_flag "c", get_flag "p",
                        get_flag "o", get_flag "s")
@@ -23,6 +25,8 @@ flag_code func = runVM (make_gen "flag_code") $ do
 -------------------------------------------------------------------------------
 ---------------------------- Flag system --------------------------------------
 -------------------------------------------------------------------------------
+-- Takes in parameters a one-bit variable, enabling the write, and the values
+-- to write in 5 flags if it is true
 flag_system en (z,c,p,o,s) = map (\(n,w) -> make_flag n w en)
     [ ("flag_z", z)
     , ("flag_c", c)
@@ -30,10 +34,12 @@ flag_system en (z,c,p,o,s) = map (\(n,w) -> make_flag n w en)
     , ("flag_o", o)
     , ("flag_s", s) ]
 
+-- Create a flag, ie a one bit register
 make_flag nm w we = rt
  where rt = (nm ++ "_temp", 1, Emux we w rr)
        rr = (nm, 1, Ereg $ nm ++ "_temp")
 
+-- Returns a direct read-only access to a flag by its name
 get_flag :: String -> Var
 get_flag s = ("flag_" ++ s, 1, Ereg $ "flag_" ++ s ++ "_temp")
 

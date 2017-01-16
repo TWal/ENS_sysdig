@@ -9,6 +9,11 @@ test_system fun src dest flags = (afun,a1,a2,res)
  where (afun,a1,a2) = test_alu fun src dest
        res          = test_check_flags fun flags
 
+-- Takes the fun value of a test, and the values of the src
+-- and dest registers, and returns another function, src and value
+-- (called cd, op1 and op2) to be executed by the ALU, so that
+-- the test can be decided depending on the resulting flags.
+-- The table of translation and tests on flags is :
 -- TestCode   Test    operation          FlagTest
 --    00       eq      xor(src, dest)      z
 --    01       neq     dest - src          nz
@@ -26,7 +31,6 @@ test_system fun src dest flags = (afun,a1,a2,res)
 --    13       nxorz   xor(src, not(dest)) z
 --    14       eq60    xor(src, 60)        z
 --    15       neq60   src - 60            nz
-
 test_alu fun src dest = runVM (make_gen "test_system_alu") $ do
     alu_diff <- constV  4 10
     alu_xor  <- constV  4 14
@@ -95,6 +99,9 @@ test_alu fun src dest = runVM (make_gen "test_system_alu") $ do
 
     return (cd, op1, op2)
 
+-- Performs the checks on the out flags of the ALU, assuming the instruction
+-- was the one given by the previous function, the decide wether the test is
+-- true or not.
 test_check_flags fun (z,c,p,o,s) = runVM (make_gen "test_system_cflags") $ do
     nz        <- notv z
     cz        <- c &: nz
