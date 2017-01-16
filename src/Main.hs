@@ -12,10 +12,11 @@ import Flags
 import ALU
 import Instructions
 import Test
+import GPU
 -- On Mux assumes 1 -> first choice
 
 computer :: Netlist
-computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_c, mem_data_c, mem_ret_c,renameV "alures" alu_res] ++ dps, ["d_op", "d_func", "d_src", "d_dest", "d_val"])
+computer = ([pp, gpu_dep] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_c, mem_data_c, mem_ret_c,renameV "alures" alu_res] ++ dps, ["d_op", "d_func", "d_src", "d_dest", "d_val"])
  where read_reg_d         = dummy "read_reg"         16
        write_reg_d        = dummy "write_reg"        16
        mem_reading_d      = dummy "mem_reading"       1
@@ -53,6 +54,8 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_
        reg_write_data_d   = dummy "reg_write_data"   16
        reg_write_enable_d = dummy "reg_write_enable"  1
        fun_for_test_d     = dummy "fun_for_test"      4
+       gpu_enable_d       = dummy "gpu_enable"        1
+       gpu_data_d         = dummy "gpu_data"         16
 
        ( read_reg, write_reg, dps) =
            register_manager rcmd_d wcmd_d reg_write_data_d reg_write_enable_d
@@ -66,6 +69,9 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_
        flag_temp =
            flag_system flag_en_d (z_d,c_d,p_d,o_d,s_d)
 
+       gpu_dep =
+           gpu_system gpu_data_d read_reg_d gpu_enable_d
+
        ( test_fun, test_src, test_dst, test_result) =
            test_system fun_for_test read_reg_d write_reg_d (z_d,c_d,p_d,o_d,s_d)
 
@@ -75,7 +81,8 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_
        ( alu_bin, fun, fun_for_test, src, dest
         , whi, wehi, wlo, welo, wsp, wesp
         , mem_enable, addr
-        , rcmd, wcmd, reg_write_data, reg_write_enable, pp) =
+        , rcmd, wcmd, reg_write_data, reg_write_enable
+        , gpu_enable, gpu_data, pp) =
            instruction_system test_fun_d test_src_d test_dst_d test_result_d
                               alu_res_d alu_wen_d alu_whi_d alu_wehi_d alu_wlo_d alu_welo_d
                               mem_reading_d mem_data_d mem_wesp_d mem_wsp_d mem_ret_d
@@ -119,6 +126,8 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_
        reg_write_data_c   = renameV "reg_write_data"   reg_write_data
        reg_write_enable_c = renameV "reg_write_enable" reg_write_enable
        fun_for_test_c     = renameV "fun_for_test"     fun_for_test
+       gpu_enable_c       = renameV "gpu_enable"       gpu_enable
+       gpu_data_c         = renameV "gpu_data"         gpu_data
        to_compute         =
            [ read_reg_c, write_reg_c,
              mem_reading_c, mem_data_c, mem_wesp_c, mem_wsp_c, mem_ret_c, flag_cd_c,
@@ -126,8 +135,11 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_
              z_c, c_c, p_c, o_c, s_c, flag_en_c, alu_bin_c, fun_c, src_c, dest_c,
              whi_c, wehi_c, wlo_c, welo_c, wsp_c, wesp_c, mem_enable_c,
              addr_c, rcmd_c, wcmd_c, reg_write_data_c, reg_write_enable_c,
-             fun_for_test_c ]
+             fun_for_test_c, gpu_enable_c, gpu_data_c ]
 
+-------------------------------------------------------------------------------
+----------------------------- Tests -------------------------------------------
+-------------------------------------------------------------------------------
 aluNetlist :: Netlist
 aluNetlist = (flagstmp ++ regs,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
                         renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen,
@@ -150,9 +162,6 @@ aluNetlist = (flagstmp ++ regs,[renameV "out" out,renameV "wen" wen,renameV "z" 
         (rreg,rwreg,regs) = register_manager rcmd wcmd write we
                                             hi hien lo loen spw spwe
 
--------------------------------------------------------------------------------
------------------------------ Tests -------------------------------------------
--------------------------------------------------------------------------------
 select4_bit_test :: Netlist
 select4_bit_test = ([],[out1,out2],[])
  where inpt = inputV "input" 4

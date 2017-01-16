@@ -250,7 +250,7 @@ v1 -: v2 = create (size v1 + size v2, Econcat v1 v2)
 
 (!!:) :: Var -> (Int8,Int8) -> VarMonad Var
 v !!: (i1,i2) = if i1 > i2 then fail "Invalid range for splice"
-                else if i2 >= size v then fail "Too big bound on splice"
+                else if i2 >= size v then fail $ "Too big bound on splice on " ++ label v
                 else create (i2 - i1 + 1, Eslice i1 i2 v)
 
 (@:) :: Var -> Int8 -> VarMonad Var

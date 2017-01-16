@@ -50,13 +50,15 @@ instruction_system test_func test_src test_dest test_out
     ins_call            <- select4_bit 11 op -- call instruction
     ins_mem_offset      <- select4_bit 12 op -- memory instruction with offset
     ins_limm            <- select4_bit 13 op -- load immediate instruction
+    ins_gpu             <- select4_bit 15 op -- gpu instruction
 
-    -- ALU input
+    -- General branching
     is_test    <- ins_jump_test_short  |: ins_jump_test_long
     is_alu     <- ins_alu_bin  |: ins_alu_un
     is_bin     <- is_test |: ins_alu_bin
     real_func' <- is_test <: (test_func,func)
-    real_func  <- ins_call <: (code_push,real_func') -- In case of a call, let the memory system do the push
+    real_func  <- ins_call <: (code_push,real_func') -- In case of a call,
+                                                     -- let the memory system do the push
     real_src'  <- is_test <: (test_src,read_reg)
     real_src   <- ins_call <: (next_pp,real_src')
     real_dest  <- is_test <: (test_dest,write_reg)
@@ -74,7 +76,7 @@ instruction_system test_func test_src test_dest test_out
     (_,addr'') <- adder addr' val -- Add the offset
     addr       <- is_long <: (addr'',addr') -- Consider the offset only if the instruction is long
 
-    -- Jump instructions
+    -- Jump instructions (includes call and ret)
     is_jmp_test <- is_test &: test_out
     is_flag     <- ins_jump_flag_short |: ins_jump_flag_long
     is_jmp_flag <- is_flag &: flag_code_out
@@ -100,10 +102,10 @@ instruction_system test_func test_src test_dest test_out
     pp_update <- is_jmp <: (jmpdest,next_pp)
     pp        <- pp_register pp_update
 
-    func' <- copy func
+    func'    <- copy func
+    gpu_data <- copy val
     return (is_bin, real_func, func', real_src, real_dest, write_hi, enable_hi, write_lo, enable_lo,
             wsp, esp, mem_enable, addr,
-            read_cmd, write_cmd, reg_data, reg_we, pp)
-
-
+            read_cmd, write_cmd, reg_data, reg_we,
+            ins_gpu, gpu_data, pp)
 
