@@ -121,10 +121,12 @@ simpleBin bincode a b = runVM (make_gen "simpleBin") $ do
   fc <- return $ get_flag "c"
   cflag <- cf &: fc
   c <- ci ^: cflag
-  (co,ario) <- simpleBinInt 16 c xab andab
+  (co',ario) <- simpleBinInt 16 c xab andab
   logo <- andb <: (andab,xab)
   ro <- ari <: (ario,logo)
   out <- ro ^-: ox
+
+  co <- co' ^: ci
 
   --overflow flags
   a15 <- ra @: 15
