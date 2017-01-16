@@ -17,10 +17,10 @@ test_system fun src dest flags = (afun,a1,a2,res)
 -- TestCode   Test    operation          FlagTest
 --    00       eq      xor(src, dest)      z
 --    01       neq     dest - src          nz
---    02       g       src - dest         c . nz
---    03       ge      src - dest          c
---    04       l       dest - src         c . nz
---    05       le      dest - src          c
+--    02       g       src - dest           c
+--    03       ge      src - dest         c + z
+--    04       l       dest - src           c
+--    05       le      dest - src         c + z
 --    06       gi      dest - src        nz.(o == p)
 --    07       gei     dest - src         o == p
 --    08       li      src - dest        nz.(o == p)
@@ -104,7 +104,7 @@ test_alu fun src dest = runVM (make_gen "test_system_alu") $ do
 -- true or not.
 test_check_flags fun (z,c,p,o,s) = runVM (make_gen "test_system_cflags") $ do
     nz        <- notv z
-    cz        <- c &: nz
+    cz        <- c |: z
     o_ne_p    <- o ^: p
     o_eq_p    <- notv o_ne_p
     nz_o_eq_p <- nz &: o_eq_p
@@ -112,10 +112,10 @@ test_check_flags fun (z,c,p,o,s) = runVM (make_gen "test_system_cflags") $ do
     long_select4 fun [
           ( 0, z)
         , ( 1, nz)
-        , ( 2, cz)
-        , ( 3, c)
-        , ( 4, cz)
-        , ( 5, c)
+        , ( 2, c)
+        , ( 3, cz)
+        , ( 4, c)
+        , ( 5, cz)
         , ( 6, nz_o_eq_p)
         , ( 7, o_eq_p)
         , ( 8, nz_o_eq_p)
