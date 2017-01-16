@@ -15,7 +15,7 @@ import Test
 -- On Mux assumes 1 -> first choice
 
 computer :: Netlist
-computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_c, mem_data_c, mem_ret_c] ++ dps, ["d_op", "d_func", "d_src", "d_dest", "d_val"])
+computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_c, mem_data_c, mem_ret_c,renameV "alures" alu_res] ++ dps, ["d_op", "d_func", "d_src", "d_dest", "d_val"])
  where read_reg_d         = dummy "read_reg"         16
        write_reg_d        = dummy "write_reg"        16
        mem_reading_d      = dummy "mem_reading"       1
@@ -69,7 +69,7 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_
        ( test_fun, test_src, test_dst, test_result) =
            test_system fun_for_test read_reg_d write_reg_d (z_d,c_d,p_d,o_d,s_d)
 
-       ( alu_res, alu_wen, (z,c,p,o,s), flag_en) =
+       ( alu_res, alu_wen, (z,c,p,o,s), flag_en,alu_whi_d,alu_wehi_d,alu_wlo_d,alu_welo_d) =
            alu alu_bin_d fun_d dest_d src_d rcmd_d
 
        ( alu_bin, fun, fun_for_test, src, dest
@@ -81,11 +81,6 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_
                               mem_reading_d mem_data_d mem_wesp_d mem_wsp_d mem_ret_d
                               read_reg_d write_reg_d
                               flag_cd_d
-
-       alu_wehi_d = vconstV "alu_wehi" 1 0
-       alu_welo_d = vconstV "alu_welo" 1 0
-       alu_whi_d  = vconstV "alu_whi" 16 0
-       alu_wlo_d  = vconstV "alu_wlo" 16 0
 
        read_reg_c         = renameV "read_reg"         read_reg
        write_reg_c        = renameV "write_reg"        write_reg
@@ -134,16 +129,26 @@ computer = ([pp] ++ dps ++ flag_temp ++ to_compute, [pp, reg_write_data_c, wcmd_
              fun_for_test_c ]
 
 aluNetlist :: Netlist
-aluNetlist = (flagstmp,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
-                        renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen],
+aluNetlist = (flagstmp ++ regs,[renameV "out" out,renameV "wen" wen,renameV "z" z,renameV "c" c,
+                        renameV "p" p,renameV "o" o,renameV "s" s,renameV "fen" fen,
+                        renameV "hireg" hi, renameV "hien" hien, renameV "loreg" lo, renameV "loen" loen],
                [])
-  where (out,wen,(z,c,p,o,s),fen) = alu bin func op1 op2 imm
+  where (out,wen,(z,c,p,o,s),fen,hi,hien,lo,loen) = alu bin func op1 op2 imm
         bin = inputV "bin" 1
         func = inputV "func" 4
         op1 = inputV "op1" 16
         op2 = inputV "op2" 16
         imm = inputV "imm" 4
+        rcmd = vconstV "rcmd" 4 0
+        wcmd = inputV "wcmd" 4
+        write = inputV "writedata" 16
+        we = inputV "writeen" 1
+        spw = vconstV "spw" 16 0
+        spwe = vconstV "spwe" 1 0
+
         flagstmp = flag_system fen (z,c,p,o,s)
+        (rreg,rwreg,regs) = register_manager rcmd wcmd write we
+                                            hi hien lo loen spw spwe
 
 -------------------------------------------------------------------------------
 ----------------------------- Tests -------------------------------------------
@@ -216,14 +221,7 @@ memory_system_flag_test = (regs, [nap], ["sp_temp"])
        addr  = inputV "addr" 16
        (_,nap,spwe,spw,_) = memory_system fun en dt addr
 
-
-mult_test :: Netlist
-mult_test = ([],[res],[])
-  where res = umul a b
-        a   = inputV "a" 16
-        b   = inputV "b" 16
-
-test_system_test = (realfn : dflags,[res,afund],[])
+{-}test_system_test = (realfn : dflags,[res,afund],[])
  where (afun, a1, a2, res) = test_system fun r1 r2 flags
        dflags = flag_system en flags
        fun    = inputV "func"  4
@@ -233,7 +231,7 @@ test_system_test = (realfn : dflags,[res,afund],[])
        afund  = dummy "afun" 4
        (_, _, flags, en) = alu bin afund a1 a2 imm
        imm    = vconstV "immediate" 4 0
-       realfn = renameV "afun" afun
+       realfn = renameV "afun" afun-}
 
 main :: IO ()
 main = putNetlist computer

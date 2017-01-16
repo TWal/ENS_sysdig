@@ -1,6 +1,9 @@
-.PHONY : all clean mrproper spec clock
+.PHONY : all clean mrproper spec clock test proco
 
-all: NetCompil/bin/netCompil
+all: NetCompil/bin/netCompil proco
+	
+
+proco:
 	cabal build
 	./run.sh > proco.net
 	NetCompil/bin/netCompil proco.net -o proco.cpp
@@ -22,3 +25,7 @@ spec: Specification/spec.tex
 
 clock:
 	make -C clock
+	
+test: proco
+	asm/asm test.s -o prog
+	./proco --rom prog --ram 100000 > log 
