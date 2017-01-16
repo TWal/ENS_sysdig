@@ -14,7 +14,7 @@
 #fp = the year
 
 main:
-    limm 65535 sp
+    limm 65534 sp
     limm 0 r6
     rdw r6 r0 8
     rdw r6 r1 10
@@ -157,7 +157,8 @@ calcDays:
 endDays:
 
 ###
-
+    mov r5 r0
+    mov r6 r1
     mov r0 lo
     mov r1 hi
     limm 3600 r2
@@ -214,7 +215,7 @@ define(SETFEB,
     add rt a3
     wrl a3 a0 18
 )
-define(SETMONTH, 
+define(SETMONTH,
     limm $1 a3
     wrl a3 a0 $2
 )

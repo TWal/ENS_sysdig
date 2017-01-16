@@ -26,6 +26,9 @@ spec: Specification/spec.tex
 clock:
 	make -C clock
 	
+testclock : clock proco
+	./proco --rom clock/a.out --ram 100000 > log
+	
 test: proco
 	asm/asm test.s -o prog
 	./proco --rom prog --ram 100000 > log 
