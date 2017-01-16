@@ -64,8 +64,39 @@ Le code lui-même n'est pas rédigé en assembleur simple, mais contient des
 macros \emph{m4}.
 
 \section{La génération de NetList}
+Pour la génération de NetList, on a développé un \emph{DSL} (pour \emph{Domain
+Specific Language}) pour écrire la NetList de manière relativement naturelle
+en Haskell, en se basant sur une \emph{State monad} qui permet de générer
+automatiquement les labels des variables.
+
+Ce système est cependant limité puisque que l'on ne peut pas composer les
+intructions : on est obligé de créer autant de variables intermédiaires qu'il
+n'y a d'instructions. Mais on bénéficie de la puissance de Haskell, c'est à dire
+la récursivité (qui simplifie la création d'\emph{adder} par exemple), la
+modularité pour découper le code en fichiers et le rendre plus lisible, et les
+opérations usuelles sur les monades.
+
+Le système atteint cependant ses limites lors de l'écriture de circuits trop
+intriqués (le système introduit des dépendances entre les variables qui empêche
+de juste laisser la paresse de Haskell travailler à notre place). Pour
+contourner ce problème, un système permettant de créer des \emph{fausse}
+variables qui lors de la générations sont remplacées par des vraies.
 
 \section{Le processeur}
+Le processeur est découpé en plusieurs modules :\begin{itemize}
+    \item L'\emph{ALU} est le circuit s'occupant des opérations arithmétiques.
+    \item Le système de \emph{flags} crée les flags et s'occupe du décodage
+        des codes de flags pour retourner la valeur du bon flag.
+    \item Le système de registres crée les registres et décodes les code de
+        registres avec les instructions d'écriture.
+    \item Le système de mémoire s'occupe du décodage des instructions de RAM
+        et de leur exécution.
+    \item Le \emph{GPU} s'occupe de la communication asynchrone avec le GPU.
+    \item Le système de \emph{Test} donne les bonnes instructions à l'ALU et
+        interprète son résultat pour déterminer la valeur d'un test.
+    \item Le système d'instruction commande les autres systèmes et décodes le
+        instructions en ROM.
+\end{itemize}
 
 \section{Le simulateur}
 
