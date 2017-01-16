@@ -186,7 +186,7 @@ endDays:
     mov lo r5 #seconds
     limm 0 a0
     limm 24 a1
-    limm 12 a2
+    limm 13 a2
     rdw a0 r6 8 #low bits of timestamp
 
 #r0: years
@@ -198,7 +198,7 @@ endDays:
 #r6: last timestamp low bits
 # a0: 0
 # a1: 24
-# a2: 12
+# a2: 13
 # a3: tmp
 
 #RAM: 17+i = nb of day in month i
@@ -277,7 +277,7 @@ mainLoop:
 #years
     incr r0
     jmp updateYears
-#ici on utilise que r[1-5] sont à 0
+#ici on utilise que r[1-5] sont connus
     rdw a0 r1 42
     rdw a0 r2 44
     rdw a0 r3 46
@@ -306,8 +306,8 @@ leap400_2:
     wrl a0 rt 41
     SETFEB()
 
-    limm 0 r1
-    limm 0 r2
+    limm 1 r1
+    limm 1 r2
     limm 0 r3
     jmp mainLoop
 
