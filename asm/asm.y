@@ -222,7 +222,7 @@ longInstr:
             auto tmp = new LongI;
             tmp->opcode = 15;
             tmp->src = $3;
-            tmp->val = $2;
+            tmp->val = $2 << 2;
             $$ = tmp;
         }
     ;
