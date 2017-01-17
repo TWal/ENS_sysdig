@@ -27,7 +27,10 @@ clock:
 	make -C clock
 	
 testclock : clock proco
-	./proco --rom clock/a.out --ram 100000 > log
+	./proco --rom clock/clock.bin --ram 100000 > log
+
+testclockfast : clock proco
+	./proco --rom clock/clock_fast.bin --ram 100000 > log
 	
 test: proco
 	asm/asm test.s -o prog
