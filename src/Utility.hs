@@ -3,6 +3,7 @@ module Utility where
 import NetList
 import GenMuxs
 import Data.Int
+import Data.Bits
 import Control.Monad
 import Data.Char (ord)
 
@@ -148,19 +149,24 @@ nap_and = nap_bin (&:)
 -- if the result (which must be a bit) yields 1, give the value of the
 -- associated variable in the list.
 -- The value returned is undefined if their is no match.
-long_select :: (Int8 -> Var -> VarMonad Var) -> Var -> [(Int8,Var)] -> VarMonad Var
-long_select f v [(_,rv)] = return rv
-long_select f v ((i,rv) : rvs) = do
-    b   <- f i v
-    nrv <- long_select f v rvs
-    b <: (rv,nrv)
 
-long_select2 = long_select sel
- where sel i v = do
-        v1 <- v @: 1
-        v0 <- v @: 0
-        select2_bit i v1 v0
-long_select4 = long_select select4_bit
+longSelect :: Int -> Var -> [(Int8,Var)] -> VarMonad Var
+longSelect _ _ [(_,rv)] = return rv
+longSelect n v rvs = do
+    b <- v @: fromIntegral (n-1)
+    let listOne = filter (flip testBit (n-1) . fst) rvs
+    let listZero = filter (not . flip testBit (n-1) . fst) rvs
+    let recOne = longSelect (n-1) v listOne
+    let recZero = longSelect (n-1) v listZero
+    if null listOne then recZero
+    else if null listZero then recOne
+    else do
+        varOne <- recOne
+        varZero <- recZero
+        b <: (varOne,varZero)
+
+long_select2 = longSelect 2
+long_select4 = longSelect 4
 
 binaryToIntegral :: (Integral a) => String -> a
 binaryToIntegral = fromIntegral . fst . foldr (\c (res, pow2) -> (res + pow2*(ord c - ord '0'), 2*pow2)) (0, 1)
