@@ -300,10 +300,10 @@ leap100_2:
     limm 0 r3
     limm 1 rt
 leap400_2:
-    wrw a0 r1 42
-    wrw a0 r2 44
-    wrw a0 r3 46
-    wrl a0 rt 41
+    wrw r1 a0 42
+    wrw r2 a0 44
+    wrw r3 a0 46
+    wrl rt a0 41
     SETFEB()
 
     limm 1 r1
